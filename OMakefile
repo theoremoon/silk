@@ -159,6 +159,8 @@ PROGRAM = silk
 # OCAML_LIB_FLAGS +=
 #
 .DEFAULT: $(OCamlProgram $(PROGRAM), $(FILES))
-.PHONY: clean
+.PHONY: clean test
 clean:
 	rm -rf $(filter-proper-targets $(ls R, .))
+test: test.sh
+	./test.sh
