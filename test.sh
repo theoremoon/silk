@@ -9,6 +9,7 @@ function expect {
 
   if [ "$r" != "$1" ]; then
     echo -e "\e[31mExpected $1 but got $r\e[m"
+    exit 1
   else
     echo -e "\e[32mpass $1\e[m"
   fi

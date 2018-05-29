@@ -162,5 +162,5 @@ PROGRAM = silk
 .PHONY: clean test
 clean:
 	rm -rf $(filter-proper-targets $(ls R, .))
-test: test.sh
+test: $(PROGRAM) test.sh
 	./test.sh
