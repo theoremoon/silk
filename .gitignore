@@ -1,0 +1,4 @@
+tags
+*.omc
+*.ll
+.omakedb*
