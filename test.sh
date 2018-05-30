@@ -30,7 +30,7 @@ function failed {
 expect "100" "100"
 expect "20" "20"
 expect "-10" "-10"
-expect "100+200" "300"
+expect "100 +   200" "300"
 expect "100+-200" "-100"
 
 failed "abcd"
