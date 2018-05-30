@@ -86,20 +86,6 @@
 # variables.
 #
 
-#
-# This project requires ocamlfind (default - false).
-#
-USE_OCAMLFIND = true
-
-OCAMLPACKS[] =
-	llvm
-	llvm.bitwriter
-	llvm.analysis
-
-if $(not $(OCAMLFIND_EXISTS))
-   eprintln(This project requires ocamlfind, but is was not found.)
-   eprintln(You need to install ocamlfind and run "omake --configure".)
-   exit 1
 
 #
 # Include path
@@ -124,13 +110,6 @@ if $(not $(OCAMLFIND_EXISTS))
 # OCAML_BYTE_LINK_FLAGS +=
 # OCAML_NATIVE_LINK_FLAGS +=
 
-################################################
-# Generated files
-#
-# Workaround for the fact that ocamldep does not pay attention to .mll
-# and .mly files.
-#
-# OCamlGeneratedFiles(parser.ml lexer.ml)
 
 ################################################
 # Build an OCaml library
@@ -144,13 +123,39 @@ if $(not $(OCAMLFIND_EXISTS))
 #
 # .DEFAULT: $(OCamlLibrary $(LIB), $(FILES))
 
+#
+# This project requires ocamlfind (default - false).
+#
+USE_OCAMLFIND = true
+
+OCAMLPACKS[] =
+	llvm
+	llvm.bitwriter
+	llvm.analysis
+
+if $(not $(OCAMLFIND_EXISTS))
+   eprintln(This project requires ocamlfind, but is was not found.)
+   eprintln(You need to install ocamlfind and run "omake --configure".)
+   exit 1
+
+################################################
+# Generated files
+#
+# Workaround for the fact that ocamldep does not pay attention to .mll
+# and .mly files.
+#
+MENHIR_ENABLED = true
+OCamlGeneratedFiles(parser.mli parser.ml lexer.ml)
 ################################################
 # Build an OCaml program
 #
 
 FILES[] =
-   codegen
-   main
+	lexer
+	parser
+	syntax
+	codegen
+	main
 
 PROGRAM = silk
 # OCAML_LIBS +=
