@@ -8,16 +8,19 @@ let void_t = void_type llvm_ctx
 let i32_t = i32_type llvm_ctx
 let i8_t = i8_type llvm_ctx
 
+(* entry point *)
 let create_entry_block =
   let main_t = function_type void_t [||] in
   let main_f = define_function "main" main_t llvm_module in
   let entry = entry_block main_f in
   builder_at_end llvm_ctx entry
 
+(* declare print function *)
 let decl_print =
   let printf_t = var_arg_function_type i32_t [| pointer_type i8_t |] in
   declare_function "printf" printf_t llvm_module
 
+(* call print function for int *)
 let print_int x printf llvm_builder =
   let const_x = const_int i32_t x in
   let print_s = build_global_stringptr "%d\n" "" llvm_builder in
@@ -33,5 +36,5 @@ let dump_module () =
 let assert_valid_module () =
   Llvm_analysis.assert_valid_module llvm_module
 
-let write_bitcode out =
-  Llvm_bitwriter.write_bitcode_file llvm_module out
+let write_bitcode_to_channel out_channel =
+  Llvm_bitwriter.output_bitcode out_channel llvm_module 

@@ -15,7 +15,10 @@ let compile x =
   let _ =
     if Array.length Sys.argv > 1
     then 
-      Codegen.write_bitcode Sys.argv.(1) |> ignore
+      let oc = open_out Sys.argv.(1) in
+      Codegen.write_bitcode_to_channel oc |> ignore;
+      close_out oc;
+      ()
     else 
       Codegen.dump_module ()
   in
@@ -29,7 +32,6 @@ let () =
   let _ =
     match program with
     |Int v -> compile v
-    |_ -> raise (SilkError "program error")
   in
   ()
 
