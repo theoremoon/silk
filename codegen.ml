@@ -1,4 +1,5 @@
 open Llvm
+open Syntax
 
 let llvm_ctx = global_context ()
 let llvm_module = create_module llvm_ctx "silk"
@@ -22,13 +23,20 @@ let decl_print =
 
 (* call print function for int *)
 let print_int x printf llvm_builder =
-  let const_x = const_int i32_t x in
   let print_s = build_global_stringptr "%d\n" "" llvm_builder in
-  let _ = build_call printf [| print_s; const_x |] "" llvm_builder in
+  let _ = build_call printf [| print_s; x |] "" llvm_builder in
   ()
 
 let return_void llvm_builder =
   build_ret_void llvm_builder
+
+let rec eval_exp exp llvm_builder =
+  match exp with
+  |Int v -> const_int i32_t v
+  |Add (exp1, exp2) ->
+      let v1 = eval_exp exp1 llvm_builder in
+      let v2 = eval_exp exp2 llvm_builder in
+      build_add v1 v2 "name" llvm_builder
 
 let dump_module () =
   Llvm.dump_module llvm_module
