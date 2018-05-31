@@ -8,3 +8,4 @@ rule main = parse
   |"("  { Parser.LPAREN }
   |")"  { Parser.RPAREN }
   |"\n" { Parser.EOL }
+  |eof { Parser.EOF }

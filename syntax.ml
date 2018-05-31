@@ -6,5 +6,5 @@ type exp =
   |Div of exp * exp
   |Neg of exp
 
-type program =
+type statement =
   |Exp of exp

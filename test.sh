@@ -5,7 +5,7 @@ PROGRAM=./silk
 # expect input expected_output
 function expect {
   a=$(mktemp)
-  echo "$1" | timeout 5 $PROGRAM "$a"
+  echo -e "$1" | timeout 5 $PROGRAM "$a"
   r=$(lli "$a")
 
   if [ "$r" != "$2" ]; then
@@ -40,5 +40,6 @@ expect "2*3/6" "1"
 expect "2*3/8" "0"
 expect "4/3-2*1+5" "4"
 expect "4/(3-2)*(1+5)" "24"
+expect "100\n200+300" "500"
 
 failed "abcd"

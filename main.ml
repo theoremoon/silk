@@ -3,18 +3,35 @@ open Syntax
 
 exception SilkError of string
 
+
+
 (* main *)
 let () =
   (* prepare llvm ir *)
   let llvm_builder = create_entry_block in
   let printf_f = decl_print in
 
+  let eval_stmt stmt =
+    match stmt with
+    |Exp exp ->
+      Codegen.eval_exp exp llvm_builder
+  in
+
+  let rec eval_stmts stmts =
+    match stmts with
+    |stmt :: remained ->
+    begin
+      eval_stmt stmt;
+      match remained with
+      |[] -> eval_stmt stmt
+      |_ -> eval_stmts remained
+    end
+    |[] -> raise (SilkError "Empty statement is not valid")
+  in
+
   (* parse input *)
   let program = Parser.toplevel Lexer.main (Lexing.from_channel stdin) in
-  let result =
-    match program with
-    |Exp exp -> eval_exp exp llvm_builder
-  in
+  let result = eval_stmts program in
   let _ = print_int result printf_f llvm_builder in
   let _ = return_void llvm_builder in
   (* validation llvm ir  *)

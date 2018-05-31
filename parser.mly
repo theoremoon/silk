@@ -4,15 +4,18 @@
 
 %token PLUS MINUS ASTERISK SLASH
 %token LPAREN RPAREN
-%token EOL
+%token EOL EOF
 %token <int> NUM
 
 %start toplevel
-%type <Syntax.program> toplevel
+%type <Syntax.statement list> toplevel
 
 %%
 
 toplevel:
+  |Stmt* EOF { $1 }
+
+Stmt:
   |Expr EOL { Exp ($1) }
 
 Expr:
