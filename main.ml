@@ -11,15 +11,15 @@ let () =
 
   let eval_stmt stmt =
     match stmt with
-    |Exp exp ->
-      Codegen.eval_exp exp llvm_builder
+    |Exp exp -> Codegen.eval_exp exp llvm_builder
+    |Defun (name, stmts) -> raise (SilkError "defun is not implemented yet")
   in
 
   let rec eval_stmts stmts =
     match stmts with
     |stmt :: remained ->
     begin
-      eval_stmt stmt;
+      eval_stmt stmt |> ignore;
       match remained with
       |[] -> eval_stmt stmt
       |_ -> eval_stmts remained

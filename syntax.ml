@@ -8,5 +8,6 @@ type exp =
   |Assign of string * exp
   |Var of string
 
-type statement =
+type stmt =
   |Exp of exp
+  |Defun of string * stmt list

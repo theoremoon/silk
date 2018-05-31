@@ -1,7 +1,11 @@
+{
+  let reserve = [
+    ("def", Parser.DEF)
+  ]
+}
 rule main = parse
-  |[' ']+ { main lexbuf } (* skip space *)
+  |[' ' '\n']+ { main lexbuf } (* skip space *)
   |['0'-'9']+  { Parser.NUM (int_of_string (Lexing.lexeme lexbuf)) }
-  |['a'-'z']['a'-'z''A'-'z''0'-'9''_']* { Parser.VAR (Lexing.lexeme lexbuf) }
   |"="  { Parser.EQUAL }
   |"+"  { Parser.PLUS }
   |"*"  { Parser.ASTERISK }
@@ -9,5 +13,11 @@ rule main = parse
   |"/"  { Parser.SLASH }
   |"("  { Parser.LPAREN }
   |")"  { Parser.RPAREN }
-  |"\n" { Parser.EOL }
+  |"{"  { Parser.LBRACE }
+  |"}"  { Parser.RBRACE }
   |eof { Parser.EOF }
+  |['a'-'z']['a'-'z''A'-'z''0'-'9''_']* {
+    let id = Lexing.lexeme lexbuf in
+    try List.assoc id reserve
+    with _ -> Parser.ID (id)
+  }

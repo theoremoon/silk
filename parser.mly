@@ -4,13 +4,14 @@
 
 %token EQUAL
 %token PLUS MINUS ASTERISK SLASH
-%token LPAREN RPAREN
-%token EOL EOF
+%token LPAREN RPAREN LBRACE RBRACE
+%token EOF
+%token DEF
 %token <int> NUM
-%token <string> VAR
+%token <string> ID
 
 %start toplevel
-%type <Syntax.statement list> toplevel
+%type <Syntax.stmt list> toplevel
 
 %%
 
@@ -18,10 +19,11 @@ toplevel:
   |Stmt* EOF { $1 }
 
 Stmt:
-  |AssignExpr EOL { Exp ($1) }
+  |AssignExpr { Exp ($1) }
+  |DEF ID LBRACE Stmt* RBRACE { Defun($2, $4) }
 
 AssignExpr:
-  |VAR EQUAL Expr { Assign($1, $3) }
+  |ID EQUAL Expr { Assign($1, $3) }
   |Expr { $1 }
 
 Expr:
@@ -40,6 +42,6 @@ Factor:
   |LPAREN Expr RPAREN { $2 }
 
 Num:
-  |VAR { Var $1 }
+  |ID { Var $1 }
   |NUM { Int $1 }
 
