@@ -3,15 +3,6 @@ open Syntax
 
 exception SilkError of string
 
-let rec eval_exp exp llvm_builder =
-  match exp with
-  |Int v -> Llvm.const_int i32_t v
-  |Add (exp1, exp2) ->
-      let v1 = eval_exp exp1 llvm_builder in
-      let v2 = eval_exp exp2 llvm_builder in
-      Llvm.build_add v1 v2 "name" llvm_builder
-
-
 (* main *)
 let () =
   (* prepare llvm ir *)

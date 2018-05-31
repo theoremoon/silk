@@ -97,8 +97,8 @@
 #
 # The default values are defined as follows:
 #
-# NATIVE_ENABLED = $(OCAMLOPT_EXISTS)
-# BYTE_ENABLED = $(not $(OCAMLOPT_EXISTS))
+NATIVE_ENABLED = true # $(OCAMLOPT_EXISTS)
+BYTE_ENABLED = true # $(not $(OCAMLOPT_EXISTS))
 
 #
 # Various options
@@ -144,7 +144,7 @@ if $(not $(OCAMLFIND_EXISTS))
 # Workaround for the fact that ocamldep does not pay attention to .mll
 # and .mly files.
 #
-MENHIR_ENABLED = true
+# MENHIR_ENABLED = true
 OCamlGeneratedFiles(parser.mli parser.ml lexer.ml)
 ################################################
 # Build an OCaml program

@@ -32,5 +32,7 @@ expect "20" "20"
 expect "-10" "-10"
 expect "100 +   200" "300"
 expect "100+-200" "-100"
+expect "100+200+300+400" "1000"
+expect "1+2*3+4" "11"
 
 failed "abcd"

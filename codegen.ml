@@ -37,6 +37,10 @@ let rec eval_exp exp llvm_builder =
       let v1 = eval_exp exp1 llvm_builder in
       let v2 = eval_exp exp2 llvm_builder in
       build_add v1 v2 "name" llvm_builder
+  |Mult (exp1, exp2) ->
+      let v1 = eval_exp exp1 llvm_builder in
+      let v2 = eval_exp exp2 llvm_builder in
+      build_mul v1 v2 "name" llvm_builder
 
 let dump_module () =
   Llvm.dump_module llvm_module
