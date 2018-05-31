@@ -4,6 +4,9 @@ open Syntax
 let llvm_ctx = global_context ()
 let llvm_module = create_module llvm_ctx "silk"
 
+(* variables *)
+let env:(string, llvalue) Hashtbl.t = Hashtbl.create 10
+
 (* frequently used type *)
 let void_t = void_type llvm_ctx
 let i32_t = i32_type llvm_ctx

@@ -5,4 +5,6 @@ rule main = parse
   |"*"  { Parser.ASTERISK }
   |"-"  { Parser.MINUS }
   |"/"  { Parser.SLASH }
+  |"("  { Parser.LPAREN }
+  |")"  { Parser.RPAREN }
   |"\n" { Parser.EOL }

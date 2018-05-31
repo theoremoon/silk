@@ -3,6 +3,7 @@
 %}
 
 %token PLUS MINUS ASTERISK SLASH
+%token LPAREN RPAREN
 %token EOL
 %token <int> NUM
 
@@ -27,6 +28,7 @@ Term:
 Factor:
   |MINUS Num { Neg $2 }
   |Num { $1 }
+  |LPAREN Expr RPAREN { $2 }
 
 Num:
   |NUM { Int $1 }
