@@ -55,6 +55,11 @@ let rec eval_exp exp llvm_builder =
       let v1 = eval_exp exp1 llvm_builder in
       let v2 = eval_exp exp2 llvm_builder in
       build_sdiv v1 v2 "name" llvm_builder (*signed div*)
+  |Assign (name, exp1) ->
+      let v1 = eval_exp exp1 llvm_builder in
+      Hashtbl.add env name v1;
+      v1
+  |Var (name) -> Hashtbl.find env name
 
 let dump_module () =
   Llvm.dump_module llvm_module

@@ -169,3 +169,5 @@ clean:
 	rm -rf $(filter-proper-targets $(ls R, .))
 test: $(PROGRAM) test.sh
 	./test.sh
+# build 
+# ocamlbuild  -use-ocamlfind -use-menhir -pkgs llvm,llvm.analysis,llvm.bitwriter main.native && mv main.native ./silk

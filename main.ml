@@ -3,8 +3,6 @@ open Syntax
 
 exception SilkError of string
 
-
-
 (* main *)
 let () =
   (* prepare llvm ir *)
