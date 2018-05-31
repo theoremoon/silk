@@ -41,5 +41,6 @@ expect "2*3/8" "0"
 expect "4/3-2*1+5" "4"
 expect "4/(3-2)*(1+5)" "24"
 expect "100\n200+300" "500"
+expect "hello=100\nhello+300" "400"
 
 failed "abcd"
