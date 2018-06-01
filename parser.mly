@@ -3,6 +3,7 @@
 %}
 
 %token EQUAL
+%token COMMA
 %token PLUS MINUS ASTERISK SLASH
 %token LPAREN RPAREN LBRACE RBRACE
 %token EOF
@@ -20,7 +21,8 @@ toplevel:
 
 Stmt:
   |AssignExpr { Exp ($1) }
-  |DEF ID LBRACE Stmt* RBRACE { Defun($2, $4) }
+  |DEF name = ID LPAREN args = separated_list(COMMA, ID) RPAREN LBRACE body = Stmt* RBRACE { Defun(name, args, body) }
+
 
 AssignExpr:
   |ID EQUAL Expr { Assign($1, $3) }
@@ -40,7 +42,7 @@ Factor:
   |MINUS Num { Neg $2 }
   |Num { $1 }
   |LPAREN Expr RPAREN { $2 }
-  |ID LPAREN Expr RPAREN { Call ($1, $3) }
+  |fname = ID LPAREN args = separated_list(COMMA, Expr) RPAREN { Call (fname, args) }
 
 Num:
   |ID { Var $1 }

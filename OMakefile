@@ -145,6 +145,7 @@ if $(not $(OCAMLFIND_EXISTS))
 # and .mly files.
 #
 MENHIR_ENABLED = true
+MENHIR_FLAGS += --infer
 OCamlGeneratedFiles(parser.mli parser.ml lexer.ml)
 ################################################
 # Build an OCaml program

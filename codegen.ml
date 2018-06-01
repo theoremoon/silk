@@ -14,9 +14,6 @@ let env:(string, llvalue) Hashtbl.t = Hashtbl.create 10
 let void_t = void_type llvm_ctx
 let i32_t = i32_type llvm_ctx
 let i8_t = i8_type llvm_ctx
-let func_t = function_type i32_t [| i32_t |]
-
-
 
 (* eval expression *)
 let rec eval_exp exp llvm_builder =
@@ -48,9 +45,9 @@ let rec eval_exp exp llvm_builder =
       Hashtbl.add env name store;
       v1
   |Var (name) -> build_load (Hashtbl.find env name) "" llvm_builder
-  |Call (name, exp1) ->
-      let v1 = eval_exp exp1 llvm_builder in
+  |Call (name, args) ->
       if name = "print" then
+        let v1 = eval_exp (List.hd args) llvm_builder in
         let print = match lookup_function "printf" llvm_module with
           |Some(f) -> f
           |None -> raise (SilkError "program error")
@@ -58,15 +55,16 @@ let rec eval_exp exp llvm_builder =
         let print_s = build_global_stringptr "%d\n" "" llvm_builder in
         build_call print [|print_s; v1|] "" llvm_builder
       else
+        let args = List.map (fun arg -> eval_exp arg llvm_builder) args in
         match lookup_function name llvm_module with
-        |Some(f) -> build_call f [|v1|] "" llvm_builder
+        |Some(f) -> build_call f (Array.of_list args) "" llvm_builder
         |None -> raise (SilkError ("function [" ^ name ^ "] does not exist"))
 
 (* eval statement *)
 let rec eval_stmt stmt builder =
   match stmt with
   |Exp exp -> eval_exp exp builder
-  |Defun (name, stmts) ->
+  |Defun (name, arg_names, stmts) ->
       if name = "main" then
         begin
           (* entry point *)
@@ -80,14 +78,26 @@ let rec eval_stmt stmt builder =
         end
       else
         begin
+          (* declare function *)
+          let arg_types = Array.of_list (List.map (fun x -> i32_t) arg_names) in
+          let func_t = function_type i32_t arg_types in
           let f = define_function name func_t llvm_module in
           let entry = entry_block f in
           let builder = builder_at_end llvm_ctx entry in
-          let arg = Llvm.param f 0 in
-          set_value_name "arg" arg;
-          let store = build_alloca i32_t "arg" builder in
-          build_store arg store builder |> ignore;
-          Hashtbl.add env "arg" store;
+
+          (* build parameter list *)
+          let param_list = Array.to_list (Llvm.params f) in 
+          let add_arg arg_name param = 
+            begin
+              set_value_name arg_name param;
+              let store = build_alloca i32_t arg_name builder in
+              build_store param store builder |> ignore;
+              Hashtbl.add env arg_name store; (* warning: arugment name will be override *)
+            end
+          in
+          let _ = List.map2 add_arg arg_names param_list in
+
+          (* body and ret *)
           let ret = eval_stmts stmts builder in
           build_ret ret builder |> ignore;
           ret

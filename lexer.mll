@@ -15,6 +15,7 @@ rule main = parse
   |")"  { Parser.RPAREN }
   |"{"  { Parser.LBRACE }
   |"}"  { Parser.RBRACE }
+  |","  { Parser.COMMA }
   |eof { Parser.EOF }
   |['a'-'z']['a'-'z''A'-'z''0'-'9''_']* {
     let id = Lexing.lexeme lexbuf in

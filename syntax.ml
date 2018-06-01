@@ -5,10 +5,10 @@ type exp =
   |Sub of exp * exp
   |Div of exp * exp
   |Neg of exp
-  |Call of string * exp
+  |Call of string * exp list
   |Assign of string * exp
   |Var of string
 
 type stmt =
   |Exp of exp
-  |Defun of string * stmt list
+  |Defun of string * string list * stmt list
