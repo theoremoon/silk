@@ -1,6 +1,9 @@
 open Llvm
 open Syntax
 
+exception SilkError of string
+
+(* global contexts *)
 let llvm_ctx = global_context ()
 let llvm_module = create_module llvm_ctx "silk"
 
@@ -19,20 +22,8 @@ let create_entry_block =
   let entry = entry_block main_f in
   builder_at_end llvm_ctx entry
 
-(* declare print function *)
-let decl_print =
-  let printf_t = var_arg_function_type i32_t [| pointer_type i8_t |] in
-  declare_function "printf" printf_t llvm_module
 
-(* call print function for int *)
-let print_int x printf llvm_builder =
-  let print_s = build_global_stringptr "%d\n" "" llvm_builder in
-  let _ = build_call printf [| print_s; x |] "" llvm_builder in
-  ()
-
-let return_void llvm_builder =
-  build_ret_void llvm_builder
-
+(* eval expression *)
 let rec eval_exp exp llvm_builder =
   match exp with
   |Int v -> const_int i32_t v
@@ -60,12 +51,46 @@ let rec eval_exp exp llvm_builder =
       Hashtbl.add env name v1;
       v1
   |Var (name) -> Hashtbl.find env name
+  |Call (name, exp1) ->
+      let v1 = eval_exp exp1 llvm_builder in
+      if name = "print" then
+        let print = match lookup_function "printf" llvm_module with
+          |Some(f) -> f
+          |None -> raise (SilkError "program error")
+        in
+        let print_s = build_global_stringptr "%d\n" "" llvm_builder in
+        build_call print [|print_s; v1|] "" llvm_builder
+      else
+        match lookup_function name llvm_module with
+        |Some(f) -> build_call f [|v1|] "" llvm_builder
+        |None -> raise (SilkError ("function [" ^ name ^ "] does not exist"))
 
-let dump_module () =
-  Llvm.dump_module llvm_module
+(* eval statement *)
+let eval_stmt stmt builder =
+  match stmt with
+  |Exp exp -> eval_exp exp builder
+  |Defun (name, stmts) -> raise (SilkError "defun is not implemented yet")
 
-let assert_valid_module () =
-  Llvm_analysis.assert_valid_module llvm_module
+(* apply list of statements. statement will return unit *)
+let rec eval_stmts stmts builder =
+  match stmts with
+  |stmt :: remained ->
+  begin
+    eval_stmt stmt builder |> ignore;
+    eval_stmts remained builder
+  end
+  |[] -> ()
 
-let write_bitcode_to_channel out_channel =
-  Llvm_bitwriter.output_bitcode out_channel llvm_module 
+(* create LLVM IR code from program *)
+let codegen stmts =
+  (* declare builtin function *)
+  let printf_t = var_arg_function_type i32_t [| pointer_type i8_t |] in
+  let _ = declare_function "printf" printf_t llvm_module in
+
+  (* create main functon and insert stmts *)
+  let main_builder = create_entry_block in
+  eval_stmts stmts main_builder |> ignore;
+  build_ret_void main_builder |> ignore;
+  llvm_module (* return *)
+
+

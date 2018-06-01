@@ -5,6 +5,7 @@ type exp =
   |Sub of exp * exp
   |Div of exp * exp
   |Neg of exp
+  |Call of string * exp
   |Assign of string * exp
   |Var of string
 

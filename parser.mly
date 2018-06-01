@@ -40,6 +40,7 @@ Factor:
   |MINUS Num { Neg $2 }
   |Num { $1 }
   |LPAREN Expr RPAREN { $2 }
+  |ID LPAREN Expr RPAREN { Call ($1, $3) }
 
 Num:
   |ID { Var $1 }
