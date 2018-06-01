@@ -43,9 +43,11 @@ let rec eval_exp exp llvm_builder =
       build_sdiv v1 v2 "name" llvm_builder (*signed div*)
   |Assign (name, exp1) ->
       let v1 = eval_exp exp1 llvm_builder in
-      Hashtbl.add env name v1;
+      let store = build_alloca i32_t name llvm_builder in
+      let _ = build_store v1 store llvm_builder in
+      Hashtbl.add env name store;
       v1
-  |Var (name) -> Hashtbl.find env name
+  |Var (name) -> build_load (Hashtbl.find env name) "" llvm_builder
   |Call (name, exp1) ->
       let v1 = eval_exp exp1 llvm_builder in
       if name = "print" then
