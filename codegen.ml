@@ -83,6 +83,11 @@ let rec eval_stmt stmt builder =
           let f = define_function name func_t llvm_module in
           let entry = entry_block f in
           let builder = builder_at_end llvm_ctx entry in
+          let arg = Llvm.param f 0 in
+          set_value_name "arg" arg;
+          let store = build_alloca i32_t "arg" builder in
+          build_store arg store builder |> ignore;
+          Hashtbl.add env "arg" store;
           let ret = eval_stmts stmts builder in
           build_ret ret builder |> ignore;
           ret

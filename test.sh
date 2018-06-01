@@ -37,6 +37,7 @@ function failed {
 expect "def main {print(100)}" "100"
 expect "def main {hello=10 print(hello)}" "10"
 expect "def f { 100 } def main {print(f(10))}" "100"
+expect "def f { arg+100 } def main {print(f(10))}" "110"
 
 failed "abcd"
 failed "def mainer { print(100) }"
