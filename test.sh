@@ -19,28 +19,24 @@ function expect {
 function failed {
   a=$(mktemp)
   echo "$1" | timeout 5 $PROGRAM "$a"
-  if [ "$?" == "0" ]; then
-    echo -e "\e[31mExpected fail\e[m"
-    exit 1
-  else
+  if [ "$?" != "0" ]; then
     echo -e "\e[32mfailed $1\e[m"
+  else
+    r=$(lli "$a")
+    if [ "$?" != "0" ]; then
+      echo -e "\e[32mfailed $1\e[m"
+    else
+      echo -e "\e[31mFailure expected (in case $1)\e[m"
+      exit 1
+    fi
   fi
+
+
 }
 
-expect "print(100)" "100"
-expect "print(20)" "20"
-expect "print(-10)" "-10"
-expect "print(100 +   200)" "300"
-expect "print(100+-200)" "-100"
-expect "print(100+200+300+400)" "1000"
-expect "print(1+2*3+4)" "11"
-expect "print(2*3/6)" "1"
-expect "print(2*4/6)" "1"
-expect "print(2*3/6)" "1"
-expect "print(2*3/8)" "0"
-expect "print(4/3-2*1+5)" "4"
-expect "print(4/(3-2)*(1+5))" "24"
-expect "100\nprint(200+300)" "500"
-expect "hello=100\nprint(hello+300)" "400"
+expect "def main {print(100)}" "100"
+expect "def main {hello=10 print(hello)}" "10"
+expect "def f { 100 } def main {print(f(10))}" "100"
 
 failed "abcd"
+failed "def mainer { print(100) }"

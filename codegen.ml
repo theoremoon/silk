@@ -14,13 +14,8 @@ let env:(string, llvalue) Hashtbl.t = Hashtbl.create 10
 let void_t = void_type llvm_ctx
 let i32_t = i32_type llvm_ctx
 let i8_t = i8_type llvm_ctx
+let func_t = function_type i32_t [| i32_t |]
 
-(* entry point *)
-let create_entry_block =
-  let main_t = function_type void_t [||] in
-  let main_f = define_function "main" main_t llvm_module in
-  let entry = entry_block main_f in
-  builder_at_end llvm_ctx entry
 
 
 (* eval expression *)
@@ -66,20 +61,42 @@ let rec eval_exp exp llvm_builder =
         |None -> raise (SilkError ("function [" ^ name ^ "] does not exist"))
 
 (* eval statement *)
-let eval_stmt stmt builder =
+let rec eval_stmt stmt builder =
   match stmt with
   |Exp exp -> eval_exp exp builder
-  |Defun (name, stmts) -> raise (SilkError "defun is not implemented yet")
-
-(* apply list of statements. statement will return unit *)
-let rec eval_stmts stmts builder =
+  |Defun (name, stmts) ->
+      if name = "main" then
+        begin
+          (* entry point *)
+          let main_t = function_type void_t [||] in
+          let main_f = define_function "main" main_t llvm_module in
+          let entry = entry_block main_f in
+          let builder = builder_at_end llvm_ctx entry in
+          let ret = eval_stmts stmts builder in
+          build_ret_void builder |> ignore;
+          ret
+        end
+      else
+        begin
+          let f = define_function name func_t llvm_module in
+          let entry = entry_block f in
+          let builder = builder_at_end llvm_ctx entry in
+          let ret = eval_stmts stmts builder in
+          build_ret ret builder |> ignore;
+          ret
+        end
+    
+(* apply list of statements and return last evaluated value *)
+and eval_stmts stmts builder =
   match stmts with
   |stmt :: remained ->
   begin
-    eval_stmt stmt builder |> ignore;
-    eval_stmts remained builder
+    let last_exp = eval_stmt stmt builder in
+    match remained with
+    |[] -> last_exp
+    |_ -> eval_stmts remained builder
   end
-  |[] -> ()
+  |[] -> const_int i32_t 0   (* dummy value *)
 
 (* create LLVM IR code from program *)
 let codegen stmts =
@@ -88,9 +105,8 @@ let codegen stmts =
   let _ = declare_function "printf" printf_t llvm_module in
 
   (* create main functon and insert stmts *)
-  let main_builder = create_entry_block in
-  eval_stmts stmts main_builder |> ignore;
-  build_ret_void main_builder |> ignore;
+  let dummy_builder = Llvm.builder llvm_ctx in
+  eval_stmts stmts dummy_builder |> ignore;
   llvm_module (* return *)
 
 
