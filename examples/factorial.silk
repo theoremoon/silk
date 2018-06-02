@@ -1,0 +1,12 @@
+def fact(n) {
+  if n {
+    n * fact(n-1)
+  }
+  else {
+    1
+  }
+}
+
+def main() {
+  print(fact(5))
+}
