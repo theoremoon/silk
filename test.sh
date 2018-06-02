@@ -39,6 +39,8 @@ expect "def main() {hello=10 print(hello)}" "10"
 expect "def f() { 100 } def main() {print(f())}" "100"
 expect "def f(arg) { arg+100 } def main() {print(f(10))}" "110"
 expect "def f(a, b) { a + b } def main() {print(f(100, 10))}" "110"
+expect "def main() { a = if 1 { 1 } else { 2 } print(a) }" "1"
+expect "def main() { a = if 0 { 1 } else { 2 } print(a) }" "2"
 
 failed "abcd"
 failed "def mainer { print(100) }"

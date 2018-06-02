@@ -8,6 +8,7 @@
 %token LPAREN RPAREN LBRACE RBRACE
 %token EOF
 %token DEF
+%token IF ELSE
 %token <int> NUM
 %token <string> ID
 
@@ -23,14 +24,20 @@ Stmt:
   |AssignExpr { Exp ($1) }
   |DEF name = ID LPAREN args = separated_list(COMMA, ID) RPAREN LBRACE body = Stmt* RBRACE { Defun(name, args, body) }
 
+Expr:
+  |AssignExpr { $1 }
 
 AssignExpr:
-  |ID EQUAL Expr { Assign($1, $3) }
-  |Expr { $1 }
+  |ID EQUAL IfExpr { Assign($1, $3) }
+  |IfExpr { $1 }
 
-Expr:
-  |Expr PLUS Term { Add ($1, $3) }
-  |Expr MINUS Term { Sub ($1, $3) }
+IfExpr:
+  |IF cond = Expr LBRACE t = Expr RBRACE ELSE LBRACE e = Expr RBRACE { If(cond, t, e) }
+  |Arithmetic { $1 }
+
+Arithmetic:
+  |Arithmetic PLUS Term { Add ($1, $3) }
+  |Arithmetic MINUS Term { Sub ($1, $3) }
   |Term { $1 }
 
 Term:

@@ -1,6 +1,8 @@
 {
   let reserve = [
-    ("def", Parser.DEF)
+    ("def", Parser.DEF);
+    ("if", Parser.IF);
+    ("else", Parser.ELSE);
   ]
 }
 rule main = parse

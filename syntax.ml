@@ -8,6 +8,7 @@ type exp =
   |Call of string * exp list
   |Assign of string * exp
   |Var of string
+  |If of exp * exp * exp
 
 type stmt =
   |Exp of exp
