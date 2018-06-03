@@ -9,7 +9,8 @@ type exp =
   |Assign of string * exp
   |Var of string
   |If of exp * exp * exp
+  |MultiExpr of exp list
 
 type stmt =
   |Exp of exp
-  |Defun of string * string list * stmt list
+  |Defun of string * string list * exp

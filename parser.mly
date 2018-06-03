@@ -22,7 +22,7 @@ toplevel:
 
 Stmt:
   |AssignExpr { Exp ($1) }
-  |DEF name = ID LPAREN args = separated_list(COMMA, ID) RPAREN LBRACE body = Stmt* RBRACE { Defun(name, args, body) }
+  |DEF name = ID LPAREN args = separated_list(COMMA, ID) RPAREN body = Expr { Defun(name, args, body) }
 
 Expr:
   |AssignExpr { $1 }
@@ -50,6 +50,7 @@ Factor:
   |Num { $1 }
   |LPAREN Expr RPAREN { $2 }
   |fname = ID LPAREN args = separated_list(COMMA, Expr) RPAREN { Call (fname, args) }
+  |LBRACE Expr* RBRACE  { MultiExpr ( $2 ) }
 
 Num:
   |ID { Var $1 }

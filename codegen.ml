@@ -84,12 +84,15 @@ let rec eval_exp exp func builder =
         position_at_end merge_block builder;
         merge_val
       end
+  |MultiExpr (exprs) ->
+      let eval_in x e = eval_exp e func builder in
+      List.fold_left eval_in (const_int i32_t 0) exprs
 
-(* eval statement and return last value *)
+(* eval statement and return unit *)
 let rec eval_stmt stmt func builder =
   match stmt with
-  |Exp exp -> eval_exp exp func builder
-  |Defun (name, arg_names, stmts) ->
+  |Exp exp -> eval_exp exp func builder |> ignore
+  |Defun (name, arg_names, body) ->
       if name = "main" then
         begin
           (* entry point *)
@@ -97,9 +100,8 @@ let rec eval_stmt stmt func builder =
           let main_f = define_function "main" main_t llvm_module in
           let entry = entry_block main_f in
           let builder = builder_at_end llvm_ctx entry in
-          let ret = eval_stmts stmts main_f builder in
-          build_ret_void builder |> ignore;
-          ret
+          let _ = eval_exp body main_f builder in
+          build_ret_void builder |> ignore
         end
       else
         begin
@@ -123,12 +125,11 @@ let rec eval_stmt stmt func builder =
           let _ = List.map2 add_arg arg_names param_list in
 
           (* body and ret *)
-          let ret = eval_stmts stmts f builder in
-          build_ret ret builder |> ignore;
-          ret
+          let ret = eval_exp body f builder in
+          build_ret ret builder |> ignore
         end
     
-(* apply list of statements and return last evaluated value *)
+(* apply list of statements and return unit *)
 and eval_stmts stmts func builder =
   match stmts with
   |stmt :: remained ->
@@ -138,7 +139,7 @@ and eval_stmts stmts func builder =
     |[] -> last_exp
     |_ -> eval_stmts remained func builder
   end
-  |[] -> const_int i32_t 0   (* dummy value *)
+  |[] -> ()   (* dummy value *)
 
 (* create LLVM IR code from program *)
 let codegen stmts =
@@ -149,7 +150,7 @@ let codegen stmts =
   (* create main functon and insert stmts *)
   let dummy_builder = Llvm.builder llvm_ctx in
   let dummy_func = const_int i32_t 0 in
-  eval_stmts stmts dummy_func dummy_builder |> ignore;
+  eval_stmts stmts dummy_func dummy_builder;
   llvm_module (* return *)
 
 
