@@ -49,12 +49,11 @@ let rec eval_exp exp func builder =
       begin
         if name = "print" then
           let v1 = eval_exp (List.hd args) func builder in
-          let print = match lookup_function "printf" llvm_module with
+          let print = match lookup_function "print" llvm_module with
           |Some(f) -> f
           |None -> raise (SilkError "program error")
           in
-        let print_s = build_global_stringptr "%d\n" "" builder in
-        build_call print [|print_s; v1|] "" builder
+        build_call print [| v1 |] "" builder
         else
           let args = List.map (fun arg -> eval_exp arg func builder) args in
           match lookup_function name llvm_module with
@@ -144,8 +143,8 @@ and eval_stmts stmts func builder =
 (* create LLVM IR code from program *)
 let codegen stmts =
   (* declare builtin function *)
-  let printf_t = var_arg_function_type i32_t [| pointer_type i8_t |] in
-  let _ = declare_function "printf" printf_t llvm_module in
+  let print_t = function_type void_t [| i32_t |] in
+  let _ = declare_function "print" print_t llvm_module in
 
   (* create main functon and insert stmts *)
   let dummy_builder = Llvm.builder llvm_ctx in

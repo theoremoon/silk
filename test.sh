@@ -1,34 +1,57 @@
 #!/bin/bash
 
 PROGRAM=./silk
+LIBSRC=./lib.c
+
+function compile {
+  lib=$(mktemp --suffix .ll)
+  clang -c -S -emit-llvm "$LIBSRC" -o "$lib"
+  if [ "$?" != "0" ]; then
+    echo -e "\e[31m compile failed $1\e[m"
+    exit 1
+  fi
+
+  ll=$(mktemp --suffix .ll)
+  echo -e "$1" | timeout 5 "$PROGRAM" "$ll"
+  if [ "$?" != "0" ]; then
+    echo -e "\e[31m compile failed $1\e[m"
+    exit 1
+  fi
+
+  bc=$(mktemp --suffix .bc)
+  llvm-link "$ll" "$lib" -S -o "$bc"
+  if [ "$?" != "0" ]; then
+    echo -e "\e[31m compile failed $1\e[m"
+    exit 1
+  fi
+
+  s=$(mktemp --suffix .s)
+  llc "$bc" -o "$s"
+  if [ "$?" != "0" ]; then
+    echo -e "\e[31m compile failed $1\e[m"
+    exit 1
+  fi
+
+  elf=$(mktemp)
+  clang -no-pie "$s" -o "$elf"
+  if [ "$?" != "0" ]; then
+    echo -e "\e[31m compile failed $1\e[m"
+    exit 1
+  fi
+
+  echo "$elf"
+}
 
 # expect input expected_output
 function expect {
-  a=$(mktemp)
-  echo -e "$1" | timeout 5 $PROGRAM "$a"
-  r=$(lli "$a")
+  elf=$(compile "$1")
+  r=$($elf)
 
   if [ "$r" != "$2" ]; then
     echo -e "\e[31mExpected $2 but got $r (in case $1)\e[m"
     exit 1
   else
     echo -e "\e[32mpass $1\e[m"
-  fi
-}
-
-function failed {
-  a=$(mktemp)
-  echo "$1" | timeout 5 $PROGRAM "$a"
-  if [ "$?" != "0" ]; then
-    echo -e "\e[32mfailed $1\e[m"
-  else
-    r=$(lli "$a")
-    if [ "$?" != "0" ]; then
-      echo -e "\e[32mfailed $1\e[m"
-    else
-      echo -e "\e[31mFailure expected (in case $1)\e[m"
-      exit 1
-    fi
   fi
 }
 
@@ -45,7 +68,6 @@ expect "def f(a, b) { a + b } def main() {print(f(100, 10))}" "110"
 expect "def main() { a = if 1 { 1 } else { 2 } print(a) }" "1"
 expect "def main() { a = if 0 { 1 } else { 2 } print(a) }" "2"
 
+
 example "factorial.silk" "120"
 
-failed "abcd"
-failed "def mainer { print(100) }"
