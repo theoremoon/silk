@@ -1,52 +1,17 @@
 #!/bin/bash
 
-PROGRAM=./silk
-LIBSRC=./lib.c
-
-function compile {
-  lib=$(mktemp --suffix .ll)
-  clang -c -S -emit-llvm "$LIBSRC" -o "$lib"
-  if [ "$?" != "0" ]; then
-    echo -e "\e[31m compile failed $1\e[m"
-    exit 1
-  fi
-
-  ll=$(mktemp --suffix .ll)
-  echo -e "$1" | timeout 5 "$PROGRAM" "$ll"
-  if [ "$?" != "0" ]; then
-    echo -e "\e[31m compile failed $1\e[m"
-    exit 1
-  fi
-
-  bc=$(mktemp --suffix .bc)
-  llvm-link "$ll" "$lib" -S -o "$bc"
-  if [ "$?" != "0" ]; then
-    echo -e "\e[31m compile failed $1\e[m"
-    exit 1
-  fi
-
-  s=$(mktemp --suffix .s)
-  llc "$bc" -o "$s"
-  if [ "$?" != "0" ]; then
-    echo -e "\e[31m compile failed $1\e[m"
-    exit 1
-  fi
-
-  elf=$(mktemp)
-  clang -no-pie "$s" -o "$elf"
-  if [ "$?" != "0" ]; then
-    echo -e "\e[31m compile failed $1\e[m"
-    exit 1
-  fi
-
-  echo "$elf"
-}
+COMPILE=./compile.sh
 
 # expect input expected_output
 function expect {
-  elf=$(compile "$1")
-  r=$($elf)
+  elf=$(mktemp)
+  echo -e "$1" | $COMPILE - "$elf"
+  if [ "$?" != "0" ]; then
+    echo -e "\e[31m compile failed $1\e[m"
+    exit 1
+  fi
 
+  r=$($elf)
   if [ "$r" != "$2" ]; then
     echo -e "\e[31mExpected $2 but got $r (in case $1)\e[m"
     exit 1
