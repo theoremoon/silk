@@ -45,7 +45,7 @@ this program will output `120`.
 
 ## future works
 
-- [ ] make blocks as expr
+- [x] make blocks as expr
 - [ ] specify type
 - [ ] boolean/float type
 - [ ] create function scope
