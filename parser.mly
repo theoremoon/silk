@@ -28,12 +28,9 @@ Expr:
   |AssignExpr { $1 }
 
 AssignExpr:
-  |ID EQUAL IfExpr { Assign($1, $3) }
-  |IfExpr { $1 }
-
-IfExpr:
-  |IF cond = Expr LBRACE t = Expr RBRACE ELSE LBRACE e = Expr RBRACE { If(cond, t, e) }
+  |ID EQUAL Arithmetic { Assign($1, $3) }
   |Arithmetic { $1 }
+
 
 Arithmetic:
   |Arithmetic PLUS Term { Add ($1, $3) }
@@ -46,11 +43,15 @@ Term:
   |Factor { $1 }
 
 Factor:
-  |MINUS Num { Neg $2 }
+  |MINUS Factor { Neg $2 }
   |Num { $1 }
+  |IfExpr { $1 }
   |LPAREN Expr RPAREN { $2 }
   |fname = ID LPAREN args = separated_list(COMMA, Expr) RPAREN { Call (fname, args) }
   |LBRACE Expr* RBRACE  { MultiExpr ( $2 ) }
+
+IfExpr:
+  |IF cond = Expr LBRACE t = Expr RBRACE ELSE LBRACE e = Expr RBRACE { If(cond, t, e) }
 
 Num:
   |ID { Var $1 }

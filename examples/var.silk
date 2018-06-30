@@ -1,0 +1,7 @@
+def main()
+{
+  a = 10
+  a = a + 20
+  b = -a + 5
+  print(b + 5)
+}
