@@ -5,6 +5,7 @@
 %token EQUAL
 %token COMMA
 %token PLUS MINUS ASTERISK SLASH
+%token LANGLE RANGLE LANGLE_EQ RANGLE_EQ EQEQ NOTEQ
 %token LPAREN RPAREN LBRACE RBRACE
 %token EOF
 %token DEF
@@ -31,15 +32,23 @@ AssignExpr:
   |ID EQUAL Arithmetic { Assign($1, $3) }
   |Arithmetic { $1 }
 
-
 Arithmetic:
-  |Arithmetic PLUS Term { Add ($1, $3) }
-  |Arithmetic MINUS Term { Sub ($1, $3) }
+  |Arithmetic PLUS Term { BinOp ("+", $1, $3) }
+  |Arithmetic MINUS Term { BinOp ("-", $1, $3) }
   |Term { $1 }
 
 Term:
-  |Term ASTERISK Factor { Mul ($1, $3) }
-  |Term SLASH Factor { Div ($1, $3) }
+  |Term ASTERISK Factor { BinOp ("*", $1, $3) }
+  |Term SLASH Factor { BinOp ("/", $1, $3) }
+  |Compare { $1 }
+
+Compare:
+  |Compare EQEQ Factor { CmpOp ("==", $1, $3) }
+  |Compare NOTEQ Factor { CmpOp ("!=", $1, $3) }
+  |Compare LANGLE Factor { CmpOp ("<", $1, $3) }
+  |Compare RANGLE Factor { CmpOp (">", $1, $3) }
+  |Compare LANGLE_EQ Factor { CmpOp ("<=", $1, $3) }
+  |Compare RANGLE_EQ Factor { CmpOp (">=", $1, $3) }
   |Factor { $1 }
 
 Factor:

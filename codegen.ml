@@ -24,6 +24,22 @@ let void_t = void_type llvm_ctx
 let i32_t = i32_type llvm_ctx
 let i8_t = i8_type llvm_ctx
 
+(* assoc list of binary operations *)
+let int_binop = [
+  ("+", build_add);
+  ("-", build_sub);
+  ("*", build_mul);
+  ("/", build_sdiv);
+]
+let cmp_binop = [
+  ("==", Icmp.Eq);
+  ("!=", Icmp.Ne);
+  ("<", Icmp.Slt);
+  (">", Icmp.Sgt);
+  ("<=", Icmp.Sle);
+  (">=", Icmp.Sge);
+]
+
 (* eval expression; returns pair of result and new context *)
 let rec eval_exp exp ctx =
   match exp with
@@ -32,26 +48,28 @@ let rec eval_exp exp ctx =
       let v1, ctx = eval_exp exp1 ctx in
       let r = build_neg v1 "name" ctx.builder in
       (r, ctx)
-  |Add (exp1, exp2) ->
-      let v1, ctx = eval_exp exp1 ctx in
-      let v2, ctx = eval_exp exp2 ctx in
-      let r = build_add v1 v2 "name" ctx.builder in
-      (r, ctx)
-  |Sub (exp1, exp2) ->
-      let v1, ctx = eval_exp exp1 ctx in
-      let v2, ctx = eval_exp exp2 ctx in
-      let r = build_sub v1 v2 "name" ctx.builder in
-      (r, ctx)
-  |Mul (exp1, exp2) ->
-      let v1, ctx = eval_exp exp1 ctx in
-      let v2, ctx = eval_exp exp2 ctx in
-      let r = build_mul v1 v2 "name" ctx.builder in
-      (r, ctx)
-  |Div (exp1, exp2) ->
-      let v1, ctx = eval_exp exp1 ctx in
-      let v2, ctx = eval_exp exp2 ctx in
-      let r = build_sdiv v1 v2 "name" ctx.builder in (* signed div *)
-      (r, ctx)
+  |BinOp (op, exp1, exp2) ->
+      begin
+        let v1, ctx = eval_exp exp1 ctx in
+        let v2, ctx = eval_exp exp2 ctx in
+        try
+          let build_binop = List.assoc op int_binop in
+          let r = build_binop v1 v2 "name" ctx.builder in
+          (r, ctx)
+        with _ ->
+          raise (SilkError ("Undefined operator: " ^ op))
+      end
+  |CmpOp (op, exp1, exp2) -> 
+      begin
+        let v1, ctx = eval_exp exp1 ctx in
+        let v2, ctx = eval_exp exp2 ctx in
+        try
+          let cmp_icmp = List.assoc op cmp_binop in
+          let r = build_icmp cmp_icmp v1 v2 "name" ctx.builder in
+          (r, ctx)
+        with _ ->
+          raise (SilkError ("Undefined operator: " ^ op))
+      end
   |Assign (name, exp1) ->
       let v1, ctx = eval_exp exp1 ctx in
       let store = build_alloca i32_t name ctx.builder in
@@ -88,7 +106,6 @@ let rec eval_exp exp ctx =
   |If (cond, then_exp, else_exp) ->
       begin
         let cond_val, ctx = eval_exp cond ctx in
-        let cond_bool = build_icmp Icmp.Ne cond_val (const_int i32_t 0) "" ctx.builder in
         let then_block = append_block ctx.llvm_ctx "then" ctx.func in
         let else_block = append_block ctx.llvm_ctx "else" ctx.func in
         let merge_block = append_block ctx.llvm_ctx "merge" ctx.func in
@@ -104,7 +121,7 @@ let rec eval_exp exp ctx =
         let merge_builder = builder_at_end ctx.llvm_ctx merge_block in
         let merge_val = build_phi [(then_ret, then_block); (else_ret, else_block)] "" merge_builder in
 
-        build_cond_br cond_bool then_block else_block ctx.builder |> ignore;
+        build_cond_br cond_val then_block else_block ctx.builder |> ignore;
         position_at_end merge_block ctx.builder;
         (merge_val, ctx)
       end
