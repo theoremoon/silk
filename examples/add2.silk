@@ -1,0 +1,7 @@
+def add(a, b) {
+  a + b
+}
+
+def main() {
+  print(add(1, 2))
+}
