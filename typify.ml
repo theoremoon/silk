@@ -66,6 +66,15 @@ and typify_exp exp =
     let ret_t, typed_args = typify_func func_t args in
     CallT(name, typed_args, ret_t)
   end
+  |MultiExpr (exprs) -> begin
+    let last_type = ref Unit in
+    let typed_exprs = List.map (fun expr -> begin
+      let typed = typify_exp expr in
+      last_type := typeof typed;
+      typed
+    end) exprs in
+    MultiExprT(typed_exprs, !last_type)
+  end
   |_ -> raise (SilkError "Unimplemented typify")
 
 let rec typify_stmt stmt =
