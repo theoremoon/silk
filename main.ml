@@ -1,4 +1,5 @@
 open Codegen
+open Typify
 
 (* main *)
 let () =
@@ -6,6 +7,13 @@ let () =
   (* parse input *)
   let program = Parser.toplevel Lexer.main (Lexing.from_channel stdin) in
 
+  (* type check *)
+  let typed_program = Typify.typify program in
+  List.iter (fun p ->
+    typeof_stmt p |> Typ.string_of_type |> print_endline) typed_program
+
+
+  (*
   (* codegen *)
   let llvm_module = Codegen.codegen program in
 
@@ -26,4 +34,5 @@ let () =
       Llvm.dump_module llvm_module
   in
   ()
+  *)
 
