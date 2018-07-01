@@ -6,7 +6,7 @@ exception SilkError of string
 type llvm_context = {
   llvm_ctx : llcontext;
   llvm_mod : llmodule;  (* bad name! *)
-  env : (string, llvalue ) Hashtbl.t; (* future: make list *)
+  env : (string, llvalue) Hashtbl.t list;
   builder : llbuilder;
   func : llvalue;
 }
@@ -15,9 +15,6 @@ type llvm_context = {
 (* global contexts *)
 let llvm_ctx = global_context ()
 let llvm_module = create_module llvm_ctx "silk"
-
-(* variables *)
-let env:(string, llvalue) Hashtbl.t = Hashtbl.create 10
 
 (* frequently used type *)
 let void_t = void_type llvm_ctx
@@ -39,6 +36,16 @@ let cmp_binop = [
   ("<=", Icmp.Sle);
   (">=", Icmp.Sge);
 ]
+
+(* lookup name from context *)
+let rec lookup name env =
+  match env with
+  |cur::paren -> begin
+    match Hashtbl.find_opt cur name with
+    |Some(v) -> Some(v)
+    |None -> lookup name paren
+  end
+  |[] -> None
 
 (* eval expression; returns pair of result and new context *)
 let rec eval_exp exp ctx =
@@ -74,11 +81,15 @@ let rec eval_exp exp ctx =
       let v1, ctx = eval_exp exp1 ctx in
       let store = build_alloca i32_t name ctx.builder in
       let _ = build_store v1 store ctx.builder in
-      Hashtbl.add ctx.env name store;
+      Hashtbl.add (List.hd ctx.env) name store;
       (v1, ctx)
-  |Var (name) ->
-      let r = build_load (Hashtbl.find ctx.env name) "" ctx.builder in
-      (r, ctx)
+  |Var (name) -> begin
+    match lookup name ctx.env with
+    |Some(v) -> 
+        let r = build_load v "" ctx.builder in
+        (r, ctx)
+    |None -> raise (SilkError ("Undefined variable: " ^ name))
+  end
   |Call (name, args) ->
       begin
         if name = "print" then
@@ -111,11 +122,11 @@ let rec eval_exp exp ctx =
         let merge_block = append_block ctx.llvm_ctx "merge" ctx.func in
 
         let then_builder = builder_at_end ctx.llvm_ctx then_block in
-        let then_ret, _ = eval_exp then_exp {ctx with builder = then_builder} in
+        let then_ret, _ = eval_exp then_exp {ctx with builder = then_builder; env = (Hashtbl.create 16)::ctx.env} in
         build_br merge_block then_builder |> ignore;
 
         let else_builder = builder_at_end ctx.llvm_ctx else_block in
-        let else_ret, _ = eval_exp else_exp {ctx with builder = else_builder} in
+        let else_ret, _ = eval_exp else_exp {ctx with builder = else_builder; env = (Hashtbl.create 16)::ctx.env} in
         build_br merge_block else_builder |> ignore;
 
         let merge_builder = builder_at_end ctx.llvm_ctx merge_block in
@@ -126,13 +137,13 @@ let rec eval_exp exp ctx =
         (merge_val, ctx)
       end
   |MultiExpr (exprs) ->
-      let ctx_ref = ref ctx in
+      let ctx_ref = ref {ctx with env = (Hashtbl.create 16)::ctx.env} in
       let ret_ref = ref (const_int i32_t 0) in
       List.iter (fun e ->
         let r, ctx = eval_exp e !ctx_ref in
         ctx_ref := ctx;
         ret_ref := r) exprs;
-      (!ret_ref, !ctx_ref)
+      (!ret_ref, {!ctx_ref with env = List.tl (!ctx_ref).env})
 
 (* eval statement and return new context *)
 let rec eval_stmt stmt ctx =
@@ -148,10 +159,10 @@ let rec eval_stmt stmt ctx =
           let main_f = define_function "main" main_t ctx.llvm_mod in
           let entry = entry_block main_f in
           let builder = builder_at_end ctx.llvm_ctx entry in
-          let ctx = { ctx with builder = builder; func = main_f } in
+          let ctx = { ctx with builder = builder; func = main_f; env = (Hashtbl.create 16)::ctx.env} in
           let _, ctx = eval_exp body ctx in
           build_ret_void builder |> ignore;
-          {ctx with builder = builder}
+          {ctx with builder = builder; env = List.tl ctx.env}
         end
       else
         begin
@@ -161,7 +172,7 @@ let rec eval_stmt stmt ctx =
           let f = define_function name func_t ctx.llvm_mod in
           let entry = entry_block f in
           let builder = builder_at_end ctx.llvm_ctx entry in
-          let ctx = { ctx with builder = builder; func = f } in
+          let ctx = { ctx with builder = builder; func = f; env = (Hashtbl.create 16)::ctx.env } in
 
           (* build parameter list *)
           let param_list = Array.to_list (Llvm.params f) in 
@@ -170,7 +181,7 @@ let rec eval_stmt stmt ctx =
               set_value_name arg_name param;
               let store = build_alloca i32_t arg_name ctx.builder in
               build_store param store ctx.builder |> ignore;
-              Hashtbl.add ctx.env arg_name store; (* warning: arugment name will be override *)
+              Hashtbl.add (List.hd ctx.env) arg_name store; (* warning: arugment name will be override *)
             end
           in
           let _ = List.map2 add_arg arg_names param_list in
@@ -178,7 +189,7 @@ let rec eval_stmt stmt ctx =
           (* body and ret *)
           let ret, ctx = eval_exp body ctx in
           build_ret ret builder |> ignore;
-          {ctx with builder=builder}
+          {ctx with builder = builder; env = List.tl ctx.env}
         end
     
 (* apply list of statements and return new context *)
@@ -200,7 +211,7 @@ let codegen stmts =
   let context = {
     llvm_ctx = ctx;
     llvm_mod = create_module llvm_ctx "silk";
-    env = Hashtbl.create 10;
+    env = [];
     builder = Llvm.builder ctx; (* dummy *)
     func = const_int i32_t 0; (* dummy *)
   } in
