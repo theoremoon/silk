@@ -43,12 +43,12 @@ Term:
   |Compare { $1 }
 
 Compare:
-  |Compare EQEQ Factor { CmpOp ("==", $1, $3) }
-  |Compare NOTEQ Factor { CmpOp ("!=", $1, $3) }
-  |Compare LANGLE Factor { CmpOp ("<", $1, $3) }
-  |Compare RANGLE Factor { CmpOp (">", $1, $3) }
-  |Compare LANGLE_EQ Factor { CmpOp ("<=", $1, $3) }
-  |Compare RANGLE_EQ Factor { CmpOp (">=", $1, $3) }
+  |Compare EQEQ Factor { Call ("==", [$1; $3]) }
+  |Compare NOTEQ Factor { Call ("!=", [$1; $3]) }
+  |Compare LANGLE Factor { Call ("<", [$1; $3]) }
+  |Compare RANGLE Factor { Call (">", [$1; $3]) }
+  |Compare LANGLE_EQ Factor { Call ("<=", [$1; $3]) }
+  |Compare RANGLE_EQ Factor { Call (">=", [$1; $3]) }
   |Factor { $1 }
 
 Factor:

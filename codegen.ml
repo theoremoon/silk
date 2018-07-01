@@ -21,19 +21,21 @@ let i32_t = i32_type llvm_ctx
 let i8_t = i8_type llvm_ctx
 
 (* assoc list of binary operations *)
-let int_binop = [
-  ("+", build_add);
-  ("-", build_sub);
-  ("*", build_mul);
-  ("/", build_sdiv);
-]
-let cmp_binop = [
-  ("==", Icmp.Eq);
-  ("!=", Icmp.Ne);
-  ("<", Icmp.Slt);
-  (">", Icmp.Sgt);
-  ("<=", Icmp.Sle);
-  (">=", Icmp.Sge);
+type binop_t = 
+  |IntOp of (llvalue -> llvalue -> string -> llbuilder -> llvalue)
+  |CmpOp of Icmp.t
+
+let builtin_ops = [
+  ("+",  IntOp(build_add));
+  ("-",  IntOp(build_sub));
+  ("*",  IntOp(build_mul));
+  ("/",  IntOp(build_sdiv));
+  ("==", CmpOp(Icmp.Eq));
+  ("!=", CmpOp(Icmp.Ne));
+  ("<",  CmpOp(Icmp.Slt));
+  (">",  CmpOp(Icmp.Sgt));
+  ("<=", CmpOp(Icmp.Sle));
+  (">=", CmpOp(Icmp.Sge));
 ]
 
 (* lookup name from context *)
@@ -54,17 +56,6 @@ let rec eval_exp exp ctx =
       let v1, ctx = eval_exp exp1 ctx in
       let r = build_neg v1 "name" ctx.builder in
       (r, ctx)
-  |CmpOp (op, exp1, exp2) -> 
-      begin
-        let v1, ctx = eval_exp exp1 ctx in
-        let v2, ctx = eval_exp exp2 ctx in
-        try
-          let cmp_icmp = List.assoc op cmp_binop in
-          let r = build_icmp cmp_icmp v1 v2 "name" ctx.builder in
-          (r, ctx)
-        with _ ->
-          raise (SilkError ("Undefined operator: " ^ op))
-      end
   |Assign (name, exp1) ->
       let v1, ctx = eval_exp exp1 ctx in
       let store = build_alloca i32_t name ctx.builder in
@@ -87,15 +78,18 @@ let rec eval_exp exp ctx =
             r) args in
       (args, !ctx_ref)
     in
-    match List.assoc_opt name int_binop with
-    |Some(build_binop) ->
+    let args, ctx = eval_args () in
+    match List.assoc_opt name builtin_ops with
+    |Some(IntOp(build_binop)) ->
         (* arithmetic operators *)
-        let args, ctx = eval_args () in
         let r = build_binop (List.nth args 0) (List.nth args 1) "name" ctx.builder in
           (r, ctx)
+    |Some(CmpOp(cmp_icmp)) ->
+        (* compartors *)
+        let r = build_icmp cmp_icmp (List.hd args) (List.nth args 1) "name" ctx.builder in
+        (r, ctx)
     |None -> 
         (* general functions *)
-        let args, ctx = eval_args () in
         match lookup_function name ctx.llvm_mod with
         |Some(f) -> 
             let r = build_call f (Array.of_list args) "" ctx.builder in

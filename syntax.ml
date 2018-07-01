@@ -2,9 +2,6 @@ open Typ
 
 type exp =
   |Int of int
-
-  |CmpOp of string * exp * exp
-
   |Neg of exp
 
   |Call of string * exp list
@@ -15,9 +12,6 @@ type exp =
 
 type exp_t =
   |IntT of int * typ
-
-  |CmpOpT of string * exp_t * exp_t * typ
-
   |NegT of exp_t * typ
 
   |CallT of string * exp_t list * typ

@@ -5,7 +5,6 @@ open Error
 let typeof exp =
   match exp with
   |IntT (_, t) -> t
-  |CmpOpT (_, _, _, t) -> t
   |NegT (_, t) -> t
   |CallT (_, _, t) -> t
   |AssignT (_, _, t) -> t
