@@ -2,6 +2,19 @@ open Typ
 open Syntax
 open Error
 
+let builtin_optypes = [
+  ("+",  Fun(Int, Fun(Int, Int)) );
+  ("-",  Fun(Int, Fun(Int, Int)) );
+  ("*",  Fun(Int, Fun(Int, Int)) );
+  ("/",  Fun(Int, Fun(Int, Int)) );
+  ("==", Fun(Int, Fun(Int, Bool)) );
+  ("!=", Fun(Int, Fun(Int, Bool)) );
+  ("<",  Fun(Int, Fun(Int, Bool)) );
+  (">",  Fun(Int, Fun(Int, Bool)) );
+  ("<=", Fun(Int, Fun(Int, Bool)) );
+  (">=", Fun(Int, Fun(Int, Bool)) );
+]
+
 let typeof exp =
   match exp with
   |IntT (_, t) -> t
@@ -17,9 +30,35 @@ let typeof_stmt stmt =
   |ExpT (exp, t) -> t
   |DefunT (_, _, _, t) -> t
 
-let rec typify_exp exp =
+let rec typify_func func_t args =
+  match func_t with
+  |Fun (a, r) -> begin
+    match args with
+    |x::xs -> begin
+      let typed_arg = typify_exp x in
+      let arg_t = typeof typed_arg in
+      if a = arg_t then
+        let ret_t, typed_args = typify_func r xs in
+        (ret_t, typed_arg::typed_args)
+      else
+        raise (SilkError ("TypeError: required "^(string_of_type a)^" but got "^(string_of_type arg_t)^"."))
+    end
+    |[] -> raise (SilkError "too few arguments")
+  end
+  |_ -> (func_t, [])
+
+and typify_exp exp =
   match exp with
   |Int(v) -> IntT(v, Int)
+  |Call (name, args) -> begin
+    let func_t =
+      match List.assoc_opt name builtin_optypes with
+      |Some(func_t) -> func_t
+      |None -> raise (SilkError "Unimplemented typify")
+    in
+    let ret_t, typed_args = typify_func func_t args in
+    CallT(name, typed_args, ret_t)
+  end
   |_ -> raise (SilkError "Unimplemented typify")
 
 let rec typify_stmt stmt =

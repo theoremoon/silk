@@ -8,12 +8,11 @@ let () =
   let program = Parser.toplevel Lexer.main (Lexing.from_channel stdin) in
 
   (* type check *)
-  (*
   let typed_program = Typify.typify program in
   List.iter (fun p ->
     typeof_stmt p |> Typ.string_of_type |> print_endline) typed_program
-    *)
 
+    (*
   (* codegen *)
   let llvm_module = Codegen.codegen program in
 
@@ -35,3 +34,4 @@ let () =
   in
   ()
 
+*)
