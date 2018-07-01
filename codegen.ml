@@ -1,7 +1,6 @@
 open Llvm
 open Syntax
-
-exception SilkError of string
+open Error
 
 type llvm_context = {
   llvm_ctx : llcontext;

@@ -155,6 +155,7 @@ FILES[] =
 	lexer
 	parser
 	syntax
+	error
 	codegen
 	main
 
