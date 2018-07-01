@@ -3,7 +3,6 @@ open Typ
 type exp =
   |Int of int
 
-  |BinOp of string * exp * exp
   |CmpOp of string * exp * exp
 
   |Neg of exp
@@ -17,7 +16,6 @@ type exp =
 type exp_t =
   |IntT of int * typ
 
-  |BinOpT of string * exp_t * exp_t * typ
   |CmpOpT of string * exp_t * exp_t * typ
 
   |NegT of exp_t * typ

@@ -33,13 +33,13 @@ AssignExpr:
   |Arithmetic { $1 }
 
 Arithmetic:
-  |Arithmetic PLUS Term { BinOp ("+", $1, $3) }
-  |Arithmetic MINUS Term { BinOp ("-", $1, $3) }
+  |Arithmetic PLUS Term { Call ("+", [$1; $3]) }
+  |Arithmetic MINUS Term { Call ("-", [$1; $3]) }
   |Term { $1 }
 
 Term:
-  |Term ASTERISK Factor { BinOp ("*", $1, $3) }
-  |Term SLASH Factor { BinOp ("/", $1, $3) }
+  |Term ASTERISK Factor { Call ("*", [$1; $3]) }
+  |Term SLASH Factor { Call ("/", [$1; $3]) }
   |Compare { $1 }
 
 Compare:

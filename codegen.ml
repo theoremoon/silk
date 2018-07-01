@@ -54,17 +54,6 @@ let rec eval_exp exp ctx =
       let v1, ctx = eval_exp exp1 ctx in
       let r = build_neg v1 "name" ctx.builder in
       (r, ctx)
-  |BinOp (op, exp1, exp2) ->
-      begin
-        let v1, ctx = eval_exp exp1 ctx in
-        let v2, ctx = eval_exp exp2 ctx in
-        try
-          let build_binop = List.assoc op int_binop in
-          let r = build_binop v1 v2 "name" ctx.builder in
-          (r, ctx)
-        with _ ->
-          raise (SilkError ("Undefined operator: " ^ op))
-      end
   |CmpOp (op, exp1, exp2) -> 
       begin
         let v1, ctx = eval_exp exp1 ctx in
@@ -89,30 +78,30 @@ let rec eval_exp exp ctx =
         (r, ctx)
     |None -> raise (SilkError ("Undefined variable: " ^ name))
   end
-  |Call (name, args) ->
-      begin
-        if name = "print" then
-          let v1, ctx = eval_exp (List.hd args) ctx in
-          let print = match lookup_function "print" ctx.llvm_mod with
-            |Some(f) -> f
-            |None -> raise (SilkError "program error")
-          in
-          let r = build_call print [| v1 |] "" ctx.builder in
-          (r, ctx)
-        else
-          (* Ah~! Sounds of Hydrogen~~~~! *)
-          let ctx_ref = ref ctx in
-          let args = List.map (fun arg ->
-            let r, ctx = eval_exp arg !ctx_ref in
-            ctx_ref := ctx;
+  |Call (name, args) -> begin
+    let eval_args () =
+      let ctx_ref = ref ctx in
+      let args = List.map (fun arg ->
+        let r, ctx = eval_exp arg !ctx_ref in
+        ctx_ref := ctx;
             r) args in
-          let ctx = !ctx_ref in
-          match lookup_function name ctx.llvm_mod with
-          |Some(f) -> 
-              let r = build_call f (Array.of_list args) "" ctx.builder in
-              (r, ctx)
-          |None -> raise (SilkError ("function [" ^ name ^ "] does not exist"))
-      end
+      (args, !ctx_ref)
+    in
+    match List.assoc_opt name int_binop with
+    |Some(build_binop) ->
+        (* arithmetic operators *)
+        let args, ctx = eval_args () in
+        let r = build_binop (List.nth args 0) (List.nth args 1) "name" ctx.builder in
+          (r, ctx)
+    |None -> 
+        (* general functions *)
+        let args, ctx = eval_args () in
+        match lookup_function name ctx.llvm_mod with
+        |Some(f) -> 
+            let r = build_call f (Array.of_list args) "" ctx.builder in
+          (r, ctx)
+        |None -> raise (SilkError ("function [" ^ name ^ "] does not exist"))
+  end
   |If (cond, then_exp, else_exp) ->
       begin
         let cond_val, ctx = eval_exp cond ctx in
