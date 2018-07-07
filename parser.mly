@@ -55,12 +55,11 @@ Factor:
   |MINUS Factor { Neg $2 }
   |Num { $1 }
   |IfExpr { $1 }
-  |LPAREN Expr RPAREN { $2 }
   |fname = ID LPAREN args = separated_list(COMMA, Expr) RPAREN { Call (fname, args) }
   |LBRACE Expr* RBRACE  { MultiExpr ( $2 ) }
 
 IfExpr:
-  |IF cond = Expr LBRACE t = Expr RBRACE ELSE LBRACE e = Expr RBRACE { If(cond, t, e) }
+  |IF cond = Expr t = Expr ELSE e = Expr { If(cond, t, e) }
 
 Num:
   |ID { Var $1 }
