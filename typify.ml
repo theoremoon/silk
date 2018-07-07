@@ -116,7 +116,7 @@ let subst_typenv (typenv:typenv) (subst:typsubst) :typenv =
       typtbl)
     typenv 
 
-let rec typify_exp exp typenv =
+let rec typify_expr exp typenv =
   match exp with
   |Int(v) -> (TInt(v, IntT), typenv)
   |Call(name, args) ->
@@ -134,7 +134,7 @@ let rec typify_exp exp typenv =
         match args with
         |arg::xs ->
             let t = arg_type f in
-            let arg_t, typenv = typify_exp arg typenv in
+            let arg_t, typenv = typify_expr arg typenv in
             let typenv = subst_typenv typenv (unify [(t, typeof arg_t)]) in
             let argts, r_t, typenv = typify_call xs (ret_type f) typenv in
             (arg_t::argts, r_t, typenv)
@@ -143,12 +143,12 @@ let rec typify_exp exp typenv =
       let argts, rett, typenv = typify_call args f typenv in
       (TCall(name, argts, rett), typenv)
   |If(cond, then_exp, else_exp) ->
-      let cond_t, typenv = typify_exp cond typenv in
+      let cond_t, typenv = typify_expr cond typenv in
       let typenv = subst_typenv typenv (unify [(BoolT, typeof cond_t)]) in
-      let then_t, typenv = typify_exp then_exp typenv in
-      let else_t, typenv = typify_exp else_exp typenv in
+      let then_t, typenv = typify_expr then_exp typenv in
+      let else_t, typenv = typify_expr else_exp typenv in
       let typenv = subst_typenv typenv (unify [(typeof then_t, typeof else_t)]) in
-      let then_t, typenv = typify_exp then_exp typenv in
+      let then_t, typenv = typify_expr then_exp typenv in
       (TIf(cond_t, then_t, else_t, typeof then_t), typenv)
   |Var(name) -> begin
     match lookup name typenv with
@@ -159,7 +159,7 @@ let rec typify_exp exp typenv =
     match lookup_scope name typenv with
     |Some(_) -> raise (SilkError ("variable is already defined: "^name))
     |None ->
-        let expt, typenv = typify_exp exp typenv in
+        let expt, typenv = typify_expr exp typenv in
         let typenv = add_typ name (typeof expt) typenv in
         (TAssign(name, expt, typeof expt), typenv)
   end
@@ -168,7 +168,7 @@ let rec typify_exp exp typenv =
     let rec typify_exprs exprs typenv =
       match exprs with
       |e::xs -> begin
-        let e_t, typenv = typify_exp e typenv in
+        let e_t, typenv = typify_expr e typenv in
         match xs with
           |[] -> ([e_t], typeof e_t, typenv)
           |_ ->
@@ -187,9 +187,9 @@ let rec typify_exp exp typenv =
         let tyvar = newtypevar argname typenv in
         Hashtbl.add scopeenv argname tyvar) arg_names;
       let typenv = scopeenv::typenv in
-      let bodyt, typenv = typify_exp body typenv in
+      let bodyt, typenv = typify_expr body typenv in
       let argtypes = List.map (fun argname ->
-        let argtype, _ = typify_exp (Var(argname)) typenv in
+        let argtype, _ = typify_expr (Var(argname)) typenv in
         typeof argtype) arg_names
       in
       let typenv = List.tl typenv in
@@ -198,5 +198,5 @@ let rec typify_exp exp typenv =
       (TDefun(name, arg_names, bodyt, funct), typenv)
 
 let typify exprs =
-  let typed_expr, _ = typify_exp exprs [Hashtbl.create 10] in
+  let typed_expr, _ = typify_expr exprs [Hashtbl.create 10] in
   typed_expr
