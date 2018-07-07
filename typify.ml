@@ -80,6 +80,7 @@ let rec replace_typ (t: typ) name (ty: typ): typ =
 let apply_substs (t: typ) (s: typsubst): typ =
   List.fold_right (fun (name, ty) t -> replace_typ t name ty) s t
 
+
 let rec unify_one (t1: typ) (t2: typ): typsubst =
   match (t1, t2) with
   |(VarT(name1), VarT(name2)) ->
@@ -130,17 +131,17 @@ let rec typify_expr exp typenv =
         end 
       in
       (* unifying argument types and return ret_t *)
-      let rec typify_call args f typenv =
+      let rec typify_call args f typenv subst =
         match args with
         |arg::xs ->
             let t = arg_type f in
             let arg_t, typenv = typify_expr arg typenv in
-            let typenv = subst_typenv typenv (unify [(t, typeof arg_t)]) in
-            let argts, r_t, typenv = typify_call xs (ret_type f) typenv in
-            (arg_t::argts, r_t, typenv)
+            let subst = subst @ (unify [(t, typeof arg_t)]) in
+            let argts, r_t, typenv = typify_call xs (ret_type f) typenv subst in
+            (arg_t::argts, apply_substs r_t subst, subst_typenv typenv subst)
         |[] -> ([], f, typenv)
       in
-      let argts, rett, typenv = typify_call args f typenv in
+      let argts, rett, typenv = typify_call args f typenv [] in
       (TCall(name, argts, rett), typenv)
   |If(cond, then_exp, else_exp) ->
       let cond_t, typenv = typify_expr cond typenv in

@@ -50,6 +50,19 @@ let rec lookup name env =
   end
   |[] -> None
 
+let rec codegen_expr expr ctx =
+  match expr with
+  |TInt(v, _) -> (const_int i32_t v, ctx)
+  |TMultiExpr (exprs, _) ->
+      let ctx_ref = ref {ctx with env = (Hashtbl.create 16)::ctx.env} in
+      let ret_ref = ref (const_int i32_t 0) in
+      List.iter (fun e ->
+        let r, ctx = codegen_expr e !ctx_ref in
+        ctx_ref := ctx;
+        ret_ref := r) exprs;
+      (!ret_ref, {!ctx_ref with env = List.tl (!ctx_ref).env})
+  |_ -> raise Unimplemented
+
 (* eval expression; returns pair of result and new context *)
 let rec eval_exp exp ctx =
   match exp with
@@ -184,6 +197,6 @@ let codegen exprs =
   let print_t = function_type void_t [| i32_t |] in
   let _ = declare_function "print" print_t context.llvm_mod in
 
-  let _, context = eval_exp exprs context in
+  let _, context = codegen_expr exprs context in
   context.llvm_mod; (* return *)
 
