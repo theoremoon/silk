@@ -8,6 +8,7 @@ type typsubst = (string * typ) list (* ("'y", IntT); ("'z", VarT("'y")); ... *)
 let builtin_optypes = [
   ("+",  FunT(IntT, FunT(IntT, IntT)) );
   ("-",  FunT(IntT, FunT(IntT, IntT)) );
+  ("__neg",  FunT(IntT, IntT) );
   ("*",  FunT(IntT, FunT(IntT, IntT)) );
   ("/",  FunT(IntT, FunT(IntT, IntT)) );
   ("==", FunT(IntT, FunT(IntT, BoolT)) );
@@ -21,16 +22,11 @@ let builtin_optypes = [
 let typeof exp =
   match exp with
   |TInt (_, t) -> t
-  |TNeg (_, t) -> t
   |TCall (_, _, t) -> t
   |TAssign (_, _, t) -> t
   |TVar (_, t) -> t
   |TIf (_, _, _, t) -> t
   |TMultiExpr (_, t) -> t
-
-let typeof_stmt stmt =
-  match stmt with
-  |TExp (exp, t) -> t
   |TDefun (_, _, _, t) -> t
 
 let add_typ name typ typenv =
@@ -61,12 +57,11 @@ let rec lookup name typenv =
   end
   |[] -> None
 
-(*
-let rec newtyvar name typenv =
+
+let rec newtypevar name typenv =
   match lookup name typenv with
-  |Some(_) -> newtyvar ("'"^name) typenv
+  |Some(_) -> newtypevar ("'"^name) typenv
   |None -> VarT(name)
-*)
         
 let rec occurs var_name typ =
   if var_name = typ then true
@@ -127,8 +122,12 @@ let rec typify_exp exp typenv =
   |Call(name, args) ->
       let f =
         match List.assoc_opt name builtin_optypes with
-        |Some(f') -> f'
-        |None -> raise (SilkError ("Undefined function: " ^ name))
+        |Some(f') -> f'  (* builtin *)
+        |None -> begin
+          match lookup name typenv with
+          |Some(f') when is_funt f' -> f' (* user defined *)
+          |_ -> raise (SilkError ("Undefined function: " ^ name))
+        end 
       in
       (* unifying argument types and return ret_t *)
       let rec typify_call args f typenv =
@@ -182,25 +181,22 @@ let rec typify_exp exp typenv =
     let typenv = List.tl typenv in
     (TMultiExpr(exprs_t, r_t), typenv)
   end
-  |_ -> raise Unimplemented
+  |Defun(name, arg_names, body) ->
+      let scopeenv = (Hashtbl.create 10) in
+      List.iter (fun argname ->
+        let tyvar = newtypevar argname typenv in
+        Hashtbl.add scopeenv argname tyvar) arg_names;
+      let typenv = scopeenv::typenv in
+      let bodyt, typenv = typify_exp body typenv in
+      let argtypes = List.map (fun argname ->
+        let argtype, _ = typify_exp (Var(argname)) typenv in
+        typeof argtype) arg_names
+      in
+      let typenv = List.tl typenv in
+      let funct = make_funt argtypes (typeof bodyt) in
+      Hashtbl.add (List.hd typenv) name funct; 
+      (TDefun(name, arg_names, bodyt, funct), typenv)
 
-
-
-let rec typify_stmt stmt env =
-  match stmt with
-  |Exp (exp) ->
-      let typed, env = typify_exp exp env in
-      (TExp(typed, typeof typed), env)
-  |_ -> raise (SilkError "Unimplemented typify")
-
-let rec typify_stmts stmts env =
-  match stmts with
-  |stmt::xs -> 
-      let typed_stmt, env = typify_stmt stmt env in
-      let typed_stmts, env = typify_stmts xs env in
-      (typed_stmt::typed_stmts, env)
-  |[] -> ([], env)
-
-let typify stmts =
-  let typed_stmts, _ = typify_stmts stmts [Hashtbl.create 10] in
-  typed_stmts
+let typify exprs =
+  let typed_expr, _ = typify_exp exprs [Hashtbl.create 10] in
+  typed_expr

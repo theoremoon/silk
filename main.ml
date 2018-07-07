@@ -9,8 +9,7 @@ let () =
 
   (* type check *)
   let typed_program = Typify.typify program in
-  List.iter (fun p ->
-    typeof_stmt p |> Typ.string_of_type |> print_endline) typed_program
+  typeof typed_program |> Typ.string_of_type |> print_endline;
 
     (*
   (* codegen *)

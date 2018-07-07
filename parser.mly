@@ -14,16 +14,12 @@
 %token <string> ID
 
 %start toplevel
-%type <Syntax.stmt list> toplevel
+%type <Syntax.exp> toplevel
 
 %%
 
 toplevel:
-  |Stmt* EOF { $1 }
-
-Stmt:
-  |AssignExpr { Exp ($1) }
-  |DEF name = ID LPAREN args = separated_list(COMMA, ID) RPAREN body = Expr { Defun(name, args, body) }
+  |Expr* EOF { MultiExpr($1) }
 
 Expr:
   |AssignExpr { $1 }
@@ -52,11 +48,15 @@ Compare:
   |Factor { $1 }
 
 Factor:
-  |MINUS Factor { Neg $2 }
+  |MINUS Factor { Call("__neg", [$2]) }
   |Num { $1 }
   |IfExpr { $1 }
   |fname = ID LPAREN args = separated_list(COMMA, Expr) RPAREN { Call (fname, args) }
-  |LBRACE Expr* RBRACE  { MultiExpr ( $2 ) }
+  |LBRACE list(Expr) RBRACE  { MultiExpr ( $2 ) }
+  |DefExpr { $1 }
+
+DefExpr:
+  |DEF name = ID LPAREN args = separated_list(COMMA, ID) RPAREN body = Expr { Defun(name, args, body) }
 
 IfExpr:
   |IF cond = Expr t = Expr ELSE e = Expr { If(cond, t, e) }

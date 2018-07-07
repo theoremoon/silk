@@ -21,15 +21,17 @@ let i32_t = i32_type llvm_ctx
 let i8_t = i8_type llvm_ctx
 
 (* assoc list of binary operations *)
-type binop_t = 
-  |IntOp of (llvalue -> llvalue -> string -> llbuilder -> llvalue)
+type op_t = 
+  |UniOp of (llvalue -> string -> llbuilder -> llvalue)
+  |BinOp of (llvalue -> llvalue -> string -> llbuilder -> llvalue)
   |CmpOp of Icmp.t
 
 let builtin_ops = [
-  ("+",  IntOp(build_add));
-  ("-",  IntOp(build_sub));
-  ("*",  IntOp(build_mul));
-  ("/",  IntOp(build_sdiv));
+  ("__neg",  UniOp(build_neg));
+  ("+",  BinOp(build_add));
+  ("-",  BinOp(build_sub));
+  ("*",  BinOp(build_mul));
+  ("/",  BinOp(build_sdiv));
   ("==", CmpOp(Icmp.Eq));
   ("!=", CmpOp(Icmp.Ne));
   ("<",  CmpOp(Icmp.Slt));
@@ -52,10 +54,6 @@ let rec lookup name env =
 let rec eval_exp exp ctx =
   match exp with
   |Int v -> (const_int i32_t v, ctx)
-  |Neg exp1 -> 
-      let v1, ctx = eval_exp exp1 ctx in
-      let r = build_neg v1 "name" ctx.builder in
-      (r, ctx)
   |Assign (name, exp1) ->
       let v1, ctx = eval_exp exp1 ctx in
       let store = build_alloca i32_t name ctx.builder in
@@ -80,7 +78,10 @@ let rec eval_exp exp ctx =
     in
     let args, ctx = eval_args () in
     match List.assoc_opt name builtin_ops with
-    |Some(IntOp(build_binop)) ->
+    |Some(UniOp(build_uniop)) ->
+      let r = build_uniop (List.hd args) "name" ctx.builder in
+      (r, ctx)
+    |Some(BinOp(build_binop)) ->
         (* arithmetic operators *)
         let r = build_binop (List.nth args 0) (List.nth args 1) "name" ctx.builder in
           (r, ctx)
@@ -126,13 +127,6 @@ let rec eval_exp exp ctx =
         ctx_ref := ctx;
         ret_ref := r) exprs;
       (!ret_ref, {!ctx_ref with env = List.tl (!ctx_ref).env})
-
-(* eval statement and return new context *)
-let rec eval_stmt stmt ctx =
-  match stmt with
-  |Exp exp ->
-      let _, ctx = eval_exp exp ctx in
-      ctx
   |Defun (name, arg_names, body) ->
       if name = "main" then
         begin
@@ -144,7 +138,7 @@ let rec eval_stmt stmt ctx =
           let ctx = { ctx with builder = builder; func = main_f; env = (Hashtbl.create 16)::ctx.env} in
           let _, ctx = eval_exp body ctx in
           build_ret_void builder |> ignore;
-          {ctx with builder = builder; env = List.tl ctx.env}
+          (main_f, {ctx with builder = builder; env = List.tl ctx.env})
         end
       else
         begin
@@ -171,23 +165,11 @@ let rec eval_stmt stmt ctx =
           (* body and ret *)
           let ret, ctx = eval_exp body ctx in
           build_ret ret builder |> ignore;
-          {ctx with builder = builder; env = List.tl ctx.env}
+          (f, {ctx with builder = builder; env = List.tl ctx.env})
         end
-    
-(* apply list of statements and return new context *)
-and eval_stmts stmts ctx =
-  match stmts with
-  |stmt :: remained ->
-  begin
-    let ctx = eval_stmt stmt ctx in
-    match remained with
-    |[] -> ctx
-    |_ -> eval_stmts remained ctx
-  end
-  |[] -> ctx
 
 (* create LLVM IR code from program *)
-let codegen stmts =
+let codegen exprs =
   (* create context *)
   let ctx = global_context () in
   let context = {
@@ -202,6 +184,6 @@ let codegen stmts =
   let print_t = function_type void_t [| i32_t |] in
   let _ = declare_function "print" print_t context.llvm_mod in
 
-  let context = eval_stmts stmts context in
+  let _, context = eval_exp exprs context in
   context.llvm_mod; (* return *)
 
