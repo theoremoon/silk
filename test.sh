@@ -19,7 +19,7 @@ function shouldbe {
 }
 
 function example {
-  shouldbe "$(cat "examples/$1")" "$2" && echo -e "\e[32mpass $1\e[m"
+  shouldbe "$(cat "examples/$1")" "$2" && echo -e "\e[32mpass $1\e[m" || echo -e "\e[31mfailed $1\e[m"
 }
 
 

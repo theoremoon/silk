@@ -53,6 +53,7 @@ Factor:
   |IfExpr { $1 }
   |fname = ID LPAREN args = separated_list(COMMA, Expr) RPAREN { Call (fname, args) }
   |LBRACE list(Expr) RBRACE  { MultiExpr ( $2 ) }
+  |LPAREN Expr RPAREN  { $2 }
   |DefExpr { $1 }
 
 DefExpr:

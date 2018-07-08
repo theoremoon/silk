@@ -19,3 +19,14 @@ type exp_t =
   |TIf of exp_t * exp_t * exp_t * typ
   |TMultiExpr of exp_t list * typ
   |TDefun of string * string list * exp_t * typ
+
+let typeof exp =
+  match exp with
+  |TInt (_, t) -> t
+  |TCall (_, _, t) -> t
+  |TAssign (_, _, t) -> t
+  |TVar (_, t) -> t
+  |TIf (_, _, _, t) -> t
+  |TMultiExpr (_, t) -> t
+  |TDefun (_, _, _, t) -> t
+

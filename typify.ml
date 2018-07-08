@@ -6,6 +6,7 @@ type typenv = (string, typ) Hashtbl.t list (* ("x", IntT); ("y", VarT("'y")); ..
 type typsubst = (string * typ) list (* ("'y", IntT); ("'z", VarT("'y")); ... *)
 
 let builtin_optypes = [
+  ("print",  FunT(IntT, UnitT) );
   ("+",  FunT(IntT, FunT(IntT, IntT)) );
   ("-",  FunT(IntT, FunT(IntT, IntT)) );
   ("__neg",  FunT(IntT, IntT) );
@@ -18,16 +19,6 @@ let builtin_optypes = [
   ("<=", FunT(IntT, FunT(IntT, BoolT)) );
   (">=", FunT(IntT, FunT(IntT, BoolT)) );
 ]
-
-let typeof exp =
-  match exp with
-  |TInt (_, t) -> t
-  |TCall (_, _, t) -> t
-  |TAssign (_, _, t) -> t
-  |TVar (_, t) -> t
-  |TIf (_, _, _, t) -> t
-  |TMultiExpr (_, t) -> t
-  |TDefun (_, _, _, t) -> t
 
 let add_typ name typ typenv =
   match typenv with
@@ -157,10 +148,12 @@ let rec typify_expr exp typenv =
     |None -> raise (SilkError ("variable is undefined:"^name))
   end
   |Assign(name, exp) -> begin
+    let expt, typenv = typify_expr exp typenv in
     match lookup_scope name typenv with
-    |Some(_) -> raise (SilkError ("variable is already defined: "^name))
+    |Some(t) ->
+        let typenv = subst_typenv typenv (unify [(t, typeof expt)]) in
+        (TAssign(name, expt, typeof expt), typenv)
     |None ->
-        let expt, typenv = typify_expr exp typenv in
         let typenv = add_typ name (typeof expt) typenv in
         (TAssign(name, expt, typeof expt), typenv)
   end
