@@ -154,7 +154,10 @@ OCamlGeneratedFiles(parser.mli parser.ml lexer.ml)
 FILES[] =
 	lexer
 	parser
+	error
+	typ
 	syntax
+	typify
 	codegen
 	main
 

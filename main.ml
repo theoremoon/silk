@@ -1,4 +1,7 @@
 open Codegen
+open Typify
+open Syntax
+open Typ
 
 (* main *)
 let () =
@@ -6,8 +9,11 @@ let () =
   (* parse input *)
   let program = Parser.toplevel Lexer.main (Lexing.from_channel stdin) in
 
+  (* type check *)
+  let typed_program = Typify.typify program in
+
   (* codegen *)
-  let llvm_module = Codegen.codegen program in
+  let llvm_module = Codegen.codegen typed_program in
 
   (* output llvm ir *)
   let _ =
