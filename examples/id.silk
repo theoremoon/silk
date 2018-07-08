@@ -1,0 +1,6 @@
+def id(x) { x }
+
+def main() {
+  id(1 == 1)
+  id(1)
+}

@@ -129,7 +129,7 @@ let rec typify_expr exp typenv =
             let arg_t, typenv = typify_expr arg typenv in
             let subst = subst @ (unify [(t, typeof arg_t)]) in
             let argts, r_t, typenv = typify_call xs (ret_type f) typenv subst in
-            (arg_t::argts, apply_substs r_t subst, subst_typenv typenv subst)
+            (arg_t::argts, apply_substs r_t subst, typenv)
         |[] -> ([], f, typenv)
       in
       let argts, rett, typenv = typify_call args f typenv [] in
