@@ -19,6 +19,8 @@ Also `./silk` can run with oen parameter that filename to output LLVM bitcode.
 
 A simple factorial program from [examples](https://github.com/theoldmoon0602/silk/blob/master/examples/factorial.silk).
 
+**Currently this does not work!**
+
 ```
 def fact(n) {
   if n {
@@ -39,20 +41,22 @@ this program will output `120`.
 ## features
 
 - program starts with `main` function
-- all variables/literals have `int32_t` type
+- ~~all variables/literals have `int32_t` type~~
+- integer literals have `int32_t` type
 - function returns last evaluated value
 - if/else are expression
+- type inference is available
 
 ## future works
 
 - [x] make blocks as expr
 - [ ] specify type
 - [ ] boolean/float type
-- [ ] create function scope
+- [x] create function scope
 
 and so on
 
-- [ ] type inference
+- [x] type inference
 - [ ] closure
 
 ## Author
