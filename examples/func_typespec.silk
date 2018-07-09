@@ -5,4 +5,5 @@ def f(a: I32) {
 def main()
 {
   f(10)
+  # f(10 == 10) type error
 }

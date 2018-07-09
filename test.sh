@@ -28,5 +28,6 @@ example "arith.silk" "11"
 example "var.silk" "-20"
 example "add2.silk" "3"
 example "id.silk" ""
+example "func_typespec.silk" ""
 example "factorial.silk" "120"
 
