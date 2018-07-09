@@ -1,14 +1,16 @@
 open Typ
 
+type typ_exp = string
+
 type exp =
   |Int of int
 
   |Call of string * exp list
-  |Assign of string * exp
+  |Assign of string * typ_exp option * exp
   |Var of string
   |If of exp * exp * exp
   |MultiExpr of exp list
-  |Defun of string * string list * exp
+  |Defun of string * (string * typ_exp option) list * typ_exp option * exp
 
 type exp_t =
   |TInt of int * typ

@@ -3,7 +3,7 @@
 %}
 
 %token EQUAL
-%token COMMA
+%token COMMA COLON
 %token PLUS MINUS ASTERISK SLASH
 %token LANGLE RANGLE LANGLE_EQ RANGLE_EQ EQEQ NOTEQ
 %token LPAREN RPAREN LBRACE RBRACE
@@ -25,7 +25,8 @@ Expr:
   |AssignExpr { $1 }
 
 AssignExpr:
-  |ID EQUAL Arithmetic { Assign($1, $3) }
+  |DEF id=ID EQUAL exp=Arithmetic { Assign(id, None, exp) }
+  |DEF id=ID COLON t=Typ EQUAL exp=Arithmetic { Assign(id, Some(t), exp) }
   |Arithmetic { $1 }
 
 Arithmetic:
@@ -57,7 +58,12 @@ Factor:
   |DefExpr { $1 }
 
 DefExpr:
-  |DEF name = ID LPAREN args = separated_list(COMMA, ID) RPAREN body = Expr { Defun(name, args, body) }
+  |DEF name = ID LPAREN args = separated_list(COMMA, Arg) RPAREN body = Expr { Defun(name, args, None, body) }
+  |DEF name = ID LPAREN args = separated_list(COMMA, Arg) RPAREN COLON rett=Typ body = Expr { Defun(name, args, Some(rett), body) }
+
+Arg:
+  |name=ID { (name, None) }
+  |name=ID COLON t=Typ { (name, Some(t)) }
 
 IfExpr:
   |IF cond = Expr t = Expr ELSE e = Expr { If(cond, t, e) }
@@ -65,4 +71,7 @@ IfExpr:
 Num:
   |ID { Var $1 }
   |NUM { Int $1 }
+
+Typ:
+  |ID { $1 }
 

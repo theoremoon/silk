@@ -20,7 +20,24 @@ let builtin_optypes = [
   (">=", FunT(IntT, FunT(IntT, BoolT)) );
 ]
 
-let add_typ name typ typenv =
+let builtin_types = [
+  ("I32", IntT);
+]
+
+
+
+let type_of_name name =
+  match List.assoc_opt name builtin_types with
+  |Some(t) -> t
+  |None -> raise (SilkError ("Undefined type:" ^ name))
+
+let type_of_name_opt name =
+  match name with
+  |Some(name) -> Some(type_of_name name)
+  |_ -> None
+
+(* add var with type into current scope *)
+let add_var name typ typenv =
   match typenv with
   |typtbl::xs -> begin
     let typtbl = Hashtbl.copy typtbl in
@@ -62,14 +79,14 @@ let rec occurs var_name typ =
     |_ -> false
 
 (* replace t with ty *)
-let rec replace_typ (t: typ) name (ty: typ): typ =
+let rec replace_type (t: typ) name (ty: typ): typ =
   match t with
   |VarT(name') -> if name = name' then ty else t
-  |FunT(argt, rett) -> FunT(replace_typ argt name ty, replace_typ rett name ty)
+  |FunT(argt, rett) -> FunT(replace_type argt name ty, replace_type rett name ty)
   |_ -> t
 
 let apply_substs (t: typ) (s: typsubst): typ =
-  List.fold_right (fun (name, ty) t -> replace_typ t name ty) s t
+  List.fold_right (fun (name, ty) t -> replace_type t name ty) s t
 
 
 let rec unify_one (t1: typ) (t2: typ): typsubst =
@@ -147,15 +164,23 @@ let rec typify_expr exp typenv =
     |Some(t) -> (TVar(name, t), typenv)
     |None -> raise (SilkError ("variable is undefined:"^name))
   end
-  |Assign(name, exp) -> begin
+  |Assign(name, t_specifier, exp) -> begin
     let expt, typenv = typify_expr exp typenv in
-    match lookup_scope name typenv with
-    |Some(t) ->
-        let typenv = subst_typenv typenv (unify [(t, typeof expt)]) in
-        (TAssign(name, expt, typeof expt), typenv)
-    |None ->
-        let typenv = add_typ name (typeof expt) typenv in
-        (TAssign(name, expt, typeof expt), typenv)
+    let typenv = 
+      match (lookup_scope name typenv, type_of_name_opt t_specifier) with
+      |(Some(t), None) -> (* reassign (should have same type) *)
+          subst_typenv typenv (unify [(t, typeof expt)])
+      |(Some(t), Some(t')) when t = t' -> (* reassign (same type) *)
+          subst_typenv typenv (unify [(t, typeof expt)])
+      |(None, Some(t)) -> (* new assign with type specifier *)
+          let typenv = subst_typenv typenv (unify [(t, typeof expt)]) in
+          add_var name t typenv
+      |(None, None) -> (* new assign without type specifier *)
+          add_var name (typeof expt) typenv
+      |(Some(t), Some(t_specifier)) -> (* reassign (different type) *)
+          raise (SilkError ("type of variable "^name^" is "^(string_of_type t)))
+    in
+    (TAssign(name, expt, typeof expt), typenv)
   end
   |MultiExpr(exprs) -> begin
     let typenv = (Hashtbl.create 10)::typenv in
@@ -175,21 +200,58 @@ let rec typify_expr exp typenv =
     let typenv = List.tl typenv in
     (TMultiExpr(exprs_t, r_t), typenv)
   end
-  |Defun(name, arg_names, body) ->
-      let scopeenv = (Hashtbl.create 10) in
-      List.iter (fun argname ->
-        let tyvar = newtypevar argname typenv in
-        Hashtbl.add scopeenv argname tyvar) arg_names;
-      let typenv = scopeenv::typenv in
-      let bodyt, typenv = typify_expr body typenv in
-      let argtypes = List.map (fun argname ->
-        let argtype, _ = typify_expr (Var(argname)) typenv in
-        typeof argtype) arg_names
+  |Defun(name, args, rett, body) -> begin
+    (* function scope *)
+    let scopeenv = (Hashtbl.create 10) in
+    let recursible = ref true in
+    let argnames = List.map (fun (argname, argtype) -> 
+      let _ = 
+        match argtype with
+        |Some(t) ->
+            Hashtbl.add scopeenv argname (type_of_name t)
+        |None -> begin
+            let tyvar = newtypevar argname typenv in
+            Hashtbl.add scopeenv argname tyvar;
+            recursible := false
+        end
       in
-      let typenv = List.tl typenv in
-      let funct = make_funt argtypes (typeof bodyt) in
-      Hashtbl.add (List.hd typenv) name funct; 
-      (TDefun(name, arg_names, bodyt, funct), typenv)
+      argname) args
+    in
+    let rett, recursible =
+      match rett with
+      |Some(rett) -> (type_of_name rett), !recursible
+      |None -> UnitT, false
+    in
+
+    if recursible then begin
+        let argtypes = List.map (fun (_, argtype) ->
+          match argtype with
+          |Some(argtype) -> (type_of_name argtype)
+          |None -> raise (SilkError "Program Error")) args
+        in
+        let funt = make_funt argtypes rett in
+        Hashtbl.add scopeenv name funt
+    end
+    else ();
+
+    let typenv = scopeenv::typenv in
+    (* evaluate *)
+    let bodyt, typenv = typify_expr body typenv in
+
+    (* get evaluated types *)
+    let argtypes = List.map (fun argname ->
+      let argtype, _ = typify_expr (Var(argname)) typenv in
+      typeof argtype) argnames
+    in
+
+    (* rollback scope *)
+    let typenv = List.tl typenv in
+
+    (* build function type *)
+    let funct = make_funt argtypes (typeof bodyt) in
+    Hashtbl.add (List.hd typenv) name funct; 
+    (TDefun(name, argnames, bodyt, funct), typenv)
+  end
 
 let typify exprs =
   let typed_expr, _ = typify_expr exprs [Hashtbl.create 10] in

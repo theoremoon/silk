@@ -1,0 +1,9 @@
+def f(a: I32) {
+  a
+}
+
+def main()
+{
+  f(10)
+  # f(10 == 10) type error
+}

@@ -1,4 +1,4 @@
-def fact(n) {
+def fact(n:I32):I32 {
   if n == 0 {
     1
   }
