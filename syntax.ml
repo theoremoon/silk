@@ -4,6 +4,7 @@ type typ_exp = string
 
 type exp =
   |Int of int
+  |Bool of bool
 
   |Call of string * exp list
   |Assign of string * typ_exp option * exp
@@ -14,6 +15,7 @@ type exp =
 
 type exp_t =
   |TInt of int * typ
+  |TBool of bool * typ
 
   |TCall of string * exp_t list * typ
   |TAssign of string * exp_t * typ
@@ -25,6 +27,7 @@ type exp_t =
 let typeof exp =
   match exp with
   |TInt (_, t) -> t
+  |TBool(_, t) -> t
   |TCall (_, _, t) -> t
   |TAssign (_, _, t) -> t
   |TVar (_, t) -> t

@@ -50,7 +50,8 @@ this program will output `120`.
 
 - [x] make blocks as expr
 - [x] specify type
-- [ ] boolean/float type
+- [x] boolean
+- [ ] float type
 - [x] create function scope
 
 and so on

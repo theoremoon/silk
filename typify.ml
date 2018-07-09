@@ -6,7 +6,7 @@ type typenv = (string, typ) Hashtbl.t list (* ("x", IntT); ("y", VarT("'y")); ..
 type typsubst = (string * typ) list (* ("'y", IntT); ("'z", VarT("'y")); ... *)
 
 let builtin_optypes = [
-  ("print",  FunT(IntT, UnitT) );
+  ("print",  FunT(VarT("'__print"), UnitT) );
   ("+",  FunT(IntT, FunT(IntT, IntT)) );
   ("-",  FunT(IntT, FunT(IntT, IntT)) );
   ("__neg",  FunT(IntT, IntT) );
@@ -22,6 +22,7 @@ let builtin_optypes = [
 
 let builtin_types = [
   ("I32", IntT);
+  ("Bool", BoolT);
 ]
 
 
@@ -128,6 +129,7 @@ let subst_typenv (typenv:typenv) (subst:typsubst) :typenv =
 let rec typify_expr exp typenv =
   match exp with
   |Int(v) -> (TInt(v, IntT), typenv)
+  |Bool(v) -> (TBool(v, BoolT), typenv)
   |Call(name, args) ->
       let f =
         match List.assoc_opt name builtin_optypes with

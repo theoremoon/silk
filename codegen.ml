@@ -95,6 +95,7 @@ let rec codegen_defun fname arg_names types ret_t body ctx =
 and codegen_expr expr ctx =
   match expr with
   |TInt(v, _) -> (const_int i32_t v, ctx)
+  |TBool(v, _) -> (const_int bool_t (if v then 1 else 0), ctx)
   |TVar (name, _) -> begin
     match lookup name ctx.env with
     |Some(v) -> 
@@ -222,8 +223,11 @@ let codegen exprs =
   } in
 
   (* declare builtin function *)
-  let print_t = function_type void_t [| i32_t |] in
-  let _ = declare_function "print__Int" print_t context.llvm_mod in
+  let print_int_t = function_type void_t [| i32_t |] in
+  let _ = declare_function "print__Int" print_int_t context.llvm_mod in
+
+  let print_bool_t = function_type void_t [| bool_t |] in
+  let _ = declare_function "print__Bool" print_bool_t context.llvm_mod in
   let _, context = codegen_expr exprs context in
 
   context.llvm_mod; (* return *)

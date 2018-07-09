@@ -10,6 +10,7 @@
 %token EOF
 %token DEF
 %token IF ELSE
+%token TRUE FALSE
 %token <int> NUM
 %token <string> ID
 
@@ -71,6 +72,8 @@ IfExpr:
 Num:
   |ID { Var $1 }
   |NUM { Int $1 }
+  |TRUE { Bool(true) }
+  |FALSE { Bool(false) }
 
 Typ:
   |ID { $1 }

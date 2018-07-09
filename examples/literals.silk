@@ -1,0 +1,9 @@
+def main() {
+  def i:I32 = 10
+  def b:Bool = true
+  def b2:Bool = false
+
+  print(i)
+  print(b)
+  print(b2)
+}
