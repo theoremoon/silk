@@ -25,7 +25,7 @@ Expr:
   |AssignExpr { $1 }
 
 AssignExpr:
-  |ID EQUAL Arithmetic { Assign($1, $3) }
+  |DEF id=ID EQUAL exp=Arithmetic { Assign(id, exp) }
   |Arithmetic { $1 }
 
 Arithmetic:
