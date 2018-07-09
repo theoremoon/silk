@@ -28,15 +28,16 @@ let builtin_types = [
 
 let type_of_name name =
   match List.assoc_opt name builtin_types with
-  |Some(t) -> Some(t)
+  |Some(t) -> t
   |None -> raise (SilkError ("Undefined type:" ^ name))
 
 let type_of_name_opt name =
   match name with
-  |Some(name) -> type_of_name name
+  |Some(name) -> Some(type_of_name name)
   |_ -> None
 
-let add_type name typ typenv =
+(* add var with type into current scope *)
+let add_var name typ typenv =
   match typenv with
   |typtbl::xs -> begin
     let typtbl = Hashtbl.copy typtbl in
@@ -173,9 +174,9 @@ let rec typify_expr exp typenv =
           subst_typenv typenv (unify [(t, typeof expt)])
       |(None, Some(t)) -> (* new assign with type specifier *)
           let typenv = subst_typenv typenv (unify [(t, typeof expt)]) in
-          add_type name t typenv
+          add_var name t typenv
       |(None, None) -> (* new assign without type specifier *)
-          add_type name (typeof expt) typenv
+          add_var name (typeof expt) typenv
       |(Some(t), Some(t_specifier)) -> (* reassign (different type) *)
           raise (SilkError ("type of variable "^name^" is "^(string_of_type t)))
     in
@@ -199,21 +200,38 @@ let rec typify_expr exp typenv =
     let typenv = List.tl typenv in
     (TMultiExpr(exprs_t, r_t), typenv)
   end
-  |Defun(name, arg_names, body) ->
-      let scopeenv = (Hashtbl.create 10) in
-      List.iter (fun argname ->
-        let tyvar = newtypevar argname typenv in
-        Hashtbl.add scopeenv argname tyvar) arg_names;
-      let typenv = scopeenv::typenv in
-      let bodyt, typenv = typify_expr body typenv in
-      let argtypes = List.map (fun argname ->
-        let argtype, _ = typify_expr (Var(argname)) typenv in
-        typeof argtype) arg_names
+  |Defun(name, args, body) -> begin
+    (* function scope *)
+    let scopeenv = (Hashtbl.create 10) in
+    let argnames = List.map (fun (argname, argtype) -> 
+      let _ = 
+        match argtype with
+        |Some(t) ->
+            Hashtbl.add scopeenv argname (type_of_name t)
+        |None ->
+            let tyvar = newtypevar argname typenv in
+            Hashtbl.add scopeenv argname tyvar
       in
-      let typenv = List.tl typenv in
-      let funct = make_funt argtypes (typeof bodyt) in
-      Hashtbl.add (List.hd typenv) name funct; 
-      (TDefun(name, arg_names, bodyt, funct), typenv)
+      argname) args
+    in
+    let typenv = scopeenv::typenv in
+    (* evaluate *)
+    let bodyt, typenv = typify_expr body typenv in
+
+    (* get evaluated types *)
+    let argtypes = List.map (fun argname ->
+      let argtype, _ = typify_expr (Var(argname)) typenv in
+      typeof argtype) argnames
+    in
+
+    (* rollback scope *)
+    let typenv = List.tl typenv in
+
+    (* build function type *)
+    let funct = make_funt argtypes (typeof bodyt) in
+    Hashtbl.add (List.hd typenv) name funct; 
+    (TDefun(name, argnames, bodyt, funct), typenv)
+  end
 
 let typify exprs =
   let typed_expr, _ = typify_expr exprs [Hashtbl.create 10] in

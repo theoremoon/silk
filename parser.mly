@@ -26,7 +26,7 @@ Expr:
 
 AssignExpr:
   |DEF id=ID EQUAL exp=Arithmetic { Assign(id, None, exp) }
-  |DEF id=ID COLON t=ID EQUAL exp=Arithmetic { Assign(id, Some(t), exp) }
+  |DEF id=ID COLON t=Typ EQUAL exp=Arithmetic { Assign(id, Some(t), exp) }
   |Arithmetic { $1 }
 
 Arithmetic:
@@ -58,7 +58,11 @@ Factor:
   |DefExpr { $1 }
 
 DefExpr:
-  |DEF name = ID LPAREN args = separated_list(COMMA, ID) RPAREN body = Expr { Defun(name, args, body) }
+  |DEF name = ID LPAREN args = separated_list(COMMA, Arg) RPAREN body = Expr { Defun(name, args, body) }
+
+Arg:
+  |name=ID { (name, None) }
+  |name=ID COLON t=Typ { (name, Some(t)) }
 
 IfExpr:
   |IF cond = Expr t = Expr ELSE e = Expr { If(cond, t, e) }
@@ -66,4 +70,7 @@ IfExpr:
 Num:
   |ID { Var $1 }
   |NUM { Int $1 }
+
+Typ:
+  |ID { $1 }
 
