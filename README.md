@@ -19,15 +19,13 @@ Also `./silk` can run with oen parameter that filename to output LLVM bitcode.
 
 A simple factorial program from [examples](https://github.com/theoldmoon0602/silk/blob/master/examples/factorial.silk).
 
-**Currently this does not work!**
-
 ```
-def fact(n) {
-  if n {
-    n * fact(n-1)
+def fact(n:I32):I32 {
+  if n == 0 {
+    1
   }
   else {
-    1
+    n * fact(n-1)
   }
 }
 
@@ -41,16 +39,17 @@ this program will output `120`.
 ## features
 
 - program starts with `main` function
-- ~~all variables/literals have `int32_t` type~~
 - integer literals have `int32_t` type
 - function returns last evaluated value
 - if/else are expression
 - type inference is available
+- fully typed recursive function is available
+- mutual recursive function is not available even fully typed
 
 ## future works
 
 - [x] make blocks as expr
-- [ ] specify type
+- [x] specify type
 - [ ] boolean/float type
 - [x] create function scope
 
