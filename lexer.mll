@@ -3,6 +3,9 @@
     ("def", Parser.DEF);
     ("if", Parser.IF);
     ("else", Parser.ELSE);
+
+    ("true", Parser.TRUE);
+    ("false", Parser.FALSE);
   ]
 }
 rule main = parse
