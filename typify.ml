@@ -20,7 +20,23 @@ let builtin_optypes = [
   (">=", FunT(IntT, FunT(IntT, BoolT)) );
 ]
 
-let add_typ name typ typenv =
+let builtin_types = [
+  ("I32", IntT);
+]
+
+
+
+let type_of_name name =
+  match List.assoc_opt name builtin_types with
+  |Some(t) -> Some(t)
+  |None -> raise (SilkError ("Undefined type:" ^ name))
+
+let type_of_name_opt name =
+  match name with
+  |Some(name) -> type_of_name name
+  |_ -> None
+
+let add_type name typ typenv =
   match typenv with
   |typtbl::xs -> begin
     let typtbl = Hashtbl.copy typtbl in
@@ -62,14 +78,14 @@ let rec occurs var_name typ =
     |_ -> false
 
 (* replace t with ty *)
-let rec replace_typ (t: typ) name (ty: typ): typ =
+let rec replace_type (t: typ) name (ty: typ): typ =
   match t with
   |VarT(name') -> if name = name' then ty else t
-  |FunT(argt, rett) -> FunT(replace_typ argt name ty, replace_typ rett name ty)
+  |FunT(argt, rett) -> FunT(replace_type argt name ty, replace_type rett name ty)
   |_ -> t
 
 let apply_substs (t: typ) (s: typsubst): typ =
-  List.fold_right (fun (name, ty) t -> replace_typ t name ty) s t
+  List.fold_right (fun (name, ty) t -> replace_type t name ty) s t
 
 
 let rec unify_one (t1: typ) (t2: typ): typsubst =
@@ -147,15 +163,23 @@ let rec typify_expr exp typenv =
     |Some(t) -> (TVar(name, t), typenv)
     |None -> raise (SilkError ("variable is undefined:"^name))
   end
-  |Assign(name, exp) -> begin
+  |Assign(name, t_specifier, exp) -> begin
     let expt, typenv = typify_expr exp typenv in
-    match lookup_scope name typenv with
-    |Some(t) ->
-        let typenv = subst_typenv typenv (unify [(t, typeof expt)]) in
-        (TAssign(name, expt, typeof expt), typenv)
-    |None ->
-        let typenv = add_typ name (typeof expt) typenv in
-        (TAssign(name, expt, typeof expt), typenv)
+    let typenv = 
+      match (lookup_scope name typenv, type_of_name_opt t_specifier) with
+      |(Some(t), None) -> (* reassign (should have same type) *)
+          subst_typenv typenv (unify [(t, typeof expt)])
+      |(Some(t), Some(t')) when t = t' -> (* reassign (same type) *)
+          subst_typenv typenv (unify [(t, typeof expt)])
+      |(None, Some(t)) -> (* new assign with type specifier *)
+          let typenv = subst_typenv typenv (unify [(t, typeof expt)]) in
+          add_type name t typenv
+      |(None, None) -> (* new assign without type specifier *)
+          add_type name (typeof expt) typenv
+      |(Some(t), Some(t_specifier)) -> (* reassign (different type) *)
+          raise (SilkError ("type of variable "^name^" is "^(string_of_type t)))
+    in
+    (TAssign(name, expt, typeof expt), typenv)
   end
   |MultiExpr(exprs) -> begin
     let typenv = (Hashtbl.create 10)::typenv in

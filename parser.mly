@@ -3,7 +3,7 @@
 %}
 
 %token EQUAL
-%token COMMA
+%token COMMA COLON
 %token PLUS MINUS ASTERISK SLASH
 %token LANGLE RANGLE LANGLE_EQ RANGLE_EQ EQEQ NOTEQ
 %token LPAREN RPAREN LBRACE RBRACE
@@ -25,7 +25,8 @@ Expr:
   |AssignExpr { $1 }
 
 AssignExpr:
-  |DEF id=ID EQUAL exp=Arithmetic { Assign(id, exp) }
+  |DEF id=ID EQUAL exp=Arithmetic { Assign(id, None, exp) }
+  |DEF id=ID COLON t=ID EQUAL exp=Arithmetic { Assign(id, Some(t), exp) }
   |Arithmetic { $1 }
 
 Arithmetic:

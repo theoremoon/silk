@@ -4,7 +4,7 @@ type exp =
   |Int of int
 
   |Call of string * exp list
-  |Assign of string * exp
+  |Assign of string * string option * exp
   |Var of string
   |If of exp * exp * exp
   |MultiExpr of exp list

@@ -29,8 +29,9 @@ rule main = parse
   |">="  { Parser.RANGLE_EQ }
 
   |","  { Parser.COMMA }
+  |":"  { Parser.COLON }
 
-  |['a'-'z']['a'-'z''A'-'z''0'-'9''_']* as id
+  |['a'-'z''A'-'z''0'-'9''_']+ as id
   {
     try List.assoc id reserve
     with _ -> Parser.ID (id)
