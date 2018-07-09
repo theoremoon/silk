@@ -10,6 +10,8 @@ rule main = parse
   |['0'-'9']+ as num
   { Parser.NUM (int_of_string num) }
 
+  |"#"  { comment lexbuf }
+
   |"="  { Parser.EQUAL }
   |"+"  { Parser.PLUS }
   |"*"  { Parser.ASTERISK }
@@ -37,3 +39,7 @@ rule main = parse
   }
 
   |eof { Parser.EOF }
+
+and comment = parse
+|['\n'] { main lexbuf }
+|_ { comment lexbuf }
