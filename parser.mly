@@ -58,7 +58,8 @@ Factor:
   |DefExpr { $1 }
 
 DefExpr:
-  |DEF name = ID LPAREN args = separated_list(COMMA, Arg) RPAREN body = Expr { Defun(name, args, body) }
+  |DEF name = ID LPAREN args = separated_list(COMMA, Arg) RPAREN body = Expr { Defun(name, args, None, body) }
+  |DEF name = ID LPAREN args = separated_list(COMMA, Arg) RPAREN COLON rett=Typ body = Expr { Defun(name, args, Some(rett), body) }
 
 Arg:
   |name=ID { (name, None) }

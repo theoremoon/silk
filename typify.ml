@@ -200,20 +200,40 @@ let rec typify_expr exp typenv =
     let typenv = List.tl typenv in
     (TMultiExpr(exprs_t, r_t), typenv)
   end
-  |Defun(name, args, body) -> begin
+  |Defun(name, args, rett, body) -> begin
     (* function scope *)
     let scopeenv = (Hashtbl.create 10) in
+    let recursible = ref true in
     let argnames = List.map (fun (argname, argtype) -> 
       let _ = 
         match argtype with
         |Some(t) ->
             Hashtbl.add scopeenv argname (type_of_name t)
-        |None ->
+        |None -> begin
             let tyvar = newtypevar argname typenv in
-            Hashtbl.add scopeenv argname tyvar
+            Hashtbl.add scopeenv argname tyvar;
+            recursible := false
+        end
       in
       argname) args
     in
+    let rett, recursible =
+      match rett with
+      |Some(rett) -> (type_of_name rett), !recursible
+      |None -> UnitT, false
+    in
+
+    if recursible then begin
+        let argtypes = List.map (fun (_, argtype) ->
+          match argtype with
+          |Some(argtype) -> (type_of_name argtype)
+          |None -> raise (SilkError "Program Error")) args
+        in
+        let funt = make_funt argtypes rett in
+        Hashtbl.add scopeenv name funt
+    end
+    else ();
+
     let typenv = scopeenv::typenv in
     (* evaluate *)
     let bodyt, typenv = typify_expr body typenv in

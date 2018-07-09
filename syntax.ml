@@ -10,7 +10,7 @@ type exp =
   |Var of string
   |If of exp * exp * exp
   |MultiExpr of exp list
-  |Defun of string * (string * typ_exp option) list * exp
+  |Defun of string * (string * typ_exp option) list * typ_exp option * exp
 
 type exp_t =
   |TInt of int * typ
