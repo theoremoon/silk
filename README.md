@@ -20,7 +20,7 @@ Also `./silk` can run with oen parameter that filename to output LLVM bitcode.
 A simple factorial program from [examples](https://github.com/theoldmoon0602/silk/blob/master/examples/factorial.silk).
 
 ```
-def fact(n:I32):I32 {
+def fact(n:I32):I32 = {
   if n == 0 {
     1
   }
@@ -29,7 +29,7 @@ def fact(n:I32):I32 {
   }
 }
 
-def main() {
+def main() = {
   print(fact(5))
 }
 ```
@@ -45,6 +45,7 @@ this program will output `120`.
 - type inference is available
 - fully typed recursive function is available
 - mutual recursive function is not available even fully typed
+- nested function available (not closure! so could not capture variables)
 
 ## future works
 
