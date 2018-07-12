@@ -7,9 +7,11 @@ type llvm_context = {
   llvm_ctx : llcontext;
   llvm_mod : llmodule;  (* bad name! *)
   env : (string, llvalue) Hashtbl.t list;
+  defined_funcs: (string * string) list;
   declared_funcs : (string * (string list * exp_t * typ)) list;
   builder : llbuilder;
   func : llvalue;
+  namespace : string;
 }
 
 
@@ -59,17 +61,26 @@ let rec lltype_of_type typ =
   match typ with
   |IntT -> i32_t
   |BoolT -> bool_t
-  |UnitT -> i32_t  (* dirty *)
+  |UnitT -> i32_t  (* dirty: type of dummy_llvalue *)
   |_ -> raise (SilkError ("Unsupported type:"^(string_of_type typ)))
 
 let rec codegen_defun fname arg_names types ret_t body ctx =
   let saved_builder = ctx.builder in
+  let saved_namespace = ctx.namespace in
+  let saved_func = ctx.func in
   let arg_types = Array.of_list (List.map lltype_of_type types) in
   let func_t = function_type (lltype_of_type ret_t) arg_types in
-  let f = define_function fname func_t ctx.llvm_mod in
+  let f_id = ctx.namespace ^ "$" ^ fname in
+  let f = define_function f_id func_t ctx.llvm_mod in
   let entry = entry_block f in
   let builder = builder_at_end ctx.llvm_ctx entry in
-  let ctx = { ctx with builder = builder; func = f; env = (Hashtbl.create 16)::ctx.env } in
+  let ctx = { ctx with
+    builder = builder;
+    func = f;
+    defined_funcs = (fname, f_id)::ctx.defined_funcs;
+    env = (Hashtbl.create 16)::ctx.env;
+    namespace = f_id;
+  } in
 
   (* build parameter list *)
   let param_list = Array.to_list (Llvm.params f) in 
@@ -92,7 +103,13 @@ let rec codegen_defun fname arg_names types ret_t body ctx =
   let ret, ctx = codegen_expr body ctx in
   build_ret ret builder |> ignore;
 
-  (f, {ctx with builder = saved_builder; env = List.tl ctx.env})
+  (f, {
+    ctx with
+    builder = saved_builder;
+    func = saved_func;
+    env = List.tl ctx.env;
+    namespace = saved_namespace;
+  })
 
 and codegen_expr expr ctx =
   match expr with
@@ -152,10 +169,14 @@ and codegen_expr expr ctx =
           (r, ctx)
       |None -> begin
         (* search functions *)
-        match lookup_function fname ctx.llvm_mod with
-        |Some(f) -> 
-          let r = build_call f (Array.of_list args) "" ctx.builder in
-          (r, ctx)
+        match List.assoc_opt fname ctx.defined_funcs with
+        |Some(f_id) -> begin
+          match lookup_function f_id ctx.llvm_mod with
+          |Some(f) -> 
+            let r = build_call f (Array.of_list args) "" ctx.builder in
+            (r, ctx)
+          |None -> raise (SilkError "Program Error: function id missed")
+        end
         |None -> begin
           match List.assoc_opt name ctx.declared_funcs with
           |Some(arg_names, body, ftype) ->
@@ -182,10 +203,11 @@ and codegen_expr expr ctx =
           let main_f = define_function "main" main_t ctx.llvm_mod in
           let entry = entry_block main_f in
           let builder = builder_at_end ctx.llvm_ctx entry in
-          let ctx = { ctx with builder = builder; func = main_f; env = (Hashtbl.create 16)::ctx.env} in
+          let saved_namespace = ctx.namespace in
+          let ctx = { ctx with builder = builder; func = main_f; env = (Hashtbl.create 16)::ctx.env; namespace = name } in
           let _, ctx = codegen_expr body ctx in
           build_ret_void builder |> ignore;
-          (main_f, {ctx with builder = builder; env = List.tl ctx.env})
+          (main_f, {ctx with builder = builder; env = List.tl ctx.env; namespace = saved_namespace})
         end
       else
         (dummy_llvalue, {ctx with declared_funcs = (name, (arg_names, body, t))::ctx.declared_funcs})
@@ -220,9 +242,14 @@ let codegen exprs =
     llvm_ctx = ctx;
     llvm_mod = create_module llvm_ctx "silk";
     env = [];
+    defined_funcs = [
+      ("print__Int", "print__Int");
+      ("print__Bool", "print__Bool");
+    ];
     declared_funcs = [];
     builder = Llvm.builder ctx; (* dummy *)
     func = dummy_llvalue; (* dummy *)
+    namespace = "";
   } in
 
   (* declare builtin function *)
