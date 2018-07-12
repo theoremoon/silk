@@ -1,8 +1,8 @@
 # id has type 'x -> 'x
 # polymorphism!!!!
-def id(x) { x }
+def id(x) = x 
 
-def main() {
+def main() = {
   print(id(true))
   print(id(1))
 }

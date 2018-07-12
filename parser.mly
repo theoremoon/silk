@@ -56,11 +56,13 @@ Factor:
   |fname = ID LPAREN args = separated_list(COMMA, Expr) RPAREN { Call (fname, args) }
   |LBRACE list(Expr) RBRACE  { MultiExpr ( $2 ) }
   |LPAREN Expr RPAREN  { $2 }
-  |DefExpr { $1 }
+  |DefunExpr { $1 }
 
-DefExpr:
-  |DEF name = ID LPAREN args = separated_list(COMMA, Arg) RPAREN body = Expr { Defun(name, args, None, body) }
-  |DEF name = ID LPAREN args = separated_list(COMMA, Arg) RPAREN COLON rett=Typ body = Expr { Defun(name, args, Some(rett), body) }
+DefunExpr:
+  |DEF name = ID LPAREN args = separated_list(COMMA, Arg)
+   RPAREN EQUAL body = Expr { Defun(name, args, None, body) }
+  |DEF name = ID LPAREN args = separated_list(COMMA, Arg)
+   RPAREN COLON rett=Typ EQUAL body = Expr { Defun(name, args, Some(rett), body) }
 
 Arg:
   |name=ID { (name, None) }

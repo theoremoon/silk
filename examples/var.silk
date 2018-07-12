@@ -1,5 +1,4 @@
-def main()
-{
+def main() = {
   def a : I32 = 10
   def a = a + 20
   def b = -a + 5

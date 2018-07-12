@@ -1,7 +1,5 @@
-def add(a, b) {
-  a + b
-}
+def add(a, b) = a + b
 
-def main() {
+def main() = {
   print(add(1, 2))
 }

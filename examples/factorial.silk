@@ -1,4 +1,4 @@
-def fact(n:I32):I32 {
+def fact(n:I32):I32 = {
   if n == 0 {
     1
   }
@@ -7,6 +7,6 @@ def fact(n:I32):I32 {
   }
 }
 
-def main() {
+def main() = {
   print(fact(5))
 }

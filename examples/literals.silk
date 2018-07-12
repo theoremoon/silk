@@ -1,4 +1,4 @@
-def main() {
+def main() = {
   def i:I32 = 10
   def b:Bool = true
   def b2:Bool = false
