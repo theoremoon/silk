@@ -22,11 +22,16 @@ let ret_type funt =
   |FunT(_, rett) -> rett
   |_ -> raise (TypeError "function type requried")
 
-let rec make_funt argtypes rettype =
+let make_funt argtypes rettype =
+  let rec make_funt' argtypes rettype =
+    match argtypes with
+    |argt::xs ->
+        FunT(argt, make_funt' xs rettype)
+    |[] -> rettype
+  in
   match argtypes with
-  |argt::xs ->
-      FunT(argt, make_funt xs rettype)
-  |[] -> rettype
+  |[] -> make_funt' [UnitT] rettype
+  |_ -> make_funt' argtypes rettype
 
 
 let rec string_of_type t =

@@ -59,7 +59,8 @@ let rec lltype_of_type typ =
   match typ with
   |IntT -> i32_t
   |BoolT -> bool_t
-  |_ -> raise (SilkError ("Unsupported type"))
+  |UnitT -> i32_t  (* dirty *)
+  |_ -> raise (SilkError ("Unsupported type:"^(string_of_type typ)))
 
 let rec codegen_defun fname arg_names types ret_t body ctx =
   let saved_builder = ctx.builder in
@@ -82,6 +83,7 @@ let rec codegen_defun fname arg_names types ret_t body ctx =
       add_arg an at ps
     end
     |([], [], []) -> ()
+    |([], [void_t], [_]) -> ()
     |_ -> raise (SilkError ("Program Error")) 
   in
   add_arg arg_names (List.map lltype_of_type types) param_list;
@@ -94,6 +96,7 @@ let rec codegen_defun fname arg_names types ret_t body ctx =
 
 and codegen_expr expr ctx =
   match expr with
+  |TUnit(_) -> (dummy_llvalue, ctx)
   |TInt(v, _) -> (const_int i32_t v, ctx)
   |TBool(v, _) -> (const_int bool_t (if v then 1 else 0), ctx)
   |TVar (name, _) -> begin

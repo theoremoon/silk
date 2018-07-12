@@ -26,6 +26,12 @@ let builtin_types = [
 ]
 
 
+let rec string_of_typenv typenv =
+  match typenv with
+  |typtbl::xs ->
+      let s = Hashtbl.fold (fun k t s -> s^k^":"^(string_of_type t)^", ") typtbl  "" in
+      s^"\n"^(string_of_typenv xs)
+  |[] -> ""
 
 let type_of_name name =
   match List.assoc_opt name builtin_types with
@@ -128,6 +134,7 @@ let subst_typenv (typenv:typenv) (subst:typsubst) :typenv =
 
 let rec typify_expr exp typenv =
   match exp with
+  |Unit -> (TUnit(UnitT), typenv)
   |Int(v) -> (TInt(v, IntT), typenv)
   |Bool(v) -> (TBool(v, BoolT), typenv)
   |Call(name, args) ->
@@ -137,7 +144,10 @@ let rec typify_expr exp typenv =
         |None -> begin
           match lookup name typenv with
           |Some(f') when is_funt f' -> f' (* user defined *)
-          |_ -> raise (SilkError ("Undefined function: " ^ name))
+          |_ -> begin
+            print_string (string_of_typenv typenv);
+            raise (SilkError ("Undefined function: " ^ name))
+          end
         end 
       in
       (* unifying argument types and return ret_t *)
@@ -150,6 +160,11 @@ let rec typify_expr exp typenv =
             let argts, r_t, typenv = typify_call xs (ret_type f) typenv subst in
             (arg_t::argts, apply_substs r_t subst, typenv)
         |[] -> ([], f, typenv)
+      in
+      let args =
+        match args with
+        |[] -> [Unit]
+        |_ -> args
       in
       let argts, rett, typenv = typify_call args f typenv [] in
       (TCall(name, argts, rett), typenv)

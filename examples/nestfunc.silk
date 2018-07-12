@@ -1,0 +1,4 @@
+def main() = {
+  def f() = 10   # Unit -> I32
+  print(f() + 1)
+}

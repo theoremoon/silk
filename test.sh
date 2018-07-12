@@ -30,6 +30,7 @@ example "var.silk" "-20"
 example "add2.silk" "3"
 example "id.silk" "true\n1"
 example "func_typespec.silk" ""
+example "nestfunc.silk" "11"
 example "literals.silk" "10\ntrue\nfalse"
 example "factorial.silk" "120"
 

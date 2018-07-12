@@ -3,6 +3,7 @@ open Typ
 type typ_exp = string
 
 type exp =
+  |Unit
   |Int of int
   |Bool of bool
 
@@ -14,6 +15,7 @@ type exp =
   |Defun of string * (string * typ_exp option) list * typ_exp option * exp
 
 type exp_t =
+  |TUnit of typ
   |TInt of int * typ
   |TBool of bool * typ
 
@@ -26,6 +28,7 @@ type exp_t =
 
 let typeof exp =
   match exp with
+  |TUnit(t) -> t
   |TInt (_, t) -> t
   |TBool(_, t) -> t
   |TCall (_, _, t) -> t
