@@ -9,6 +9,11 @@ Silk is a practice language based on LLVM which respect to [cotton](https://gith
 3. `omake`
 4. `./silk`
 
+## requirements
+
+- mehir
+- llvm
+
 ## usage
 
 If you run `./silk` without any parameters, the binary will read silk program from stdin until EOF. And will output LLVM IR to stdout.
